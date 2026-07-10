@@ -25,6 +25,8 @@ from slack_sdk.errors import SlackApiError
 load_dotenv(".env", override=False)
 
 CHANNEL_NAME = os.environ.get("DEJA_SEED_CHANNEL", "eng").lstrip("#")
+# Enterprise Grid: org-level user tokens must scope conversations.list to a workspace (team).
+TEAM_ID = os.environ.get("DEJA_TEAM_ID", "T0BGF1BJYUT")  # Deja workspace
 MARKER = "‹deja-seed:eng-temporal-v1›"  # ‹deja-seed:eng-temporal-v1›
 
 PARENT = (
@@ -44,7 +46,7 @@ def _channel_id(client: WebClient, name: str) -> str | None:
     cursor = None
     while True:
         resp = client.conversations_list(
-            types="public_channel,private_channel", limit=200, cursor=cursor
+            types="public_channel,private_channel", limit=200, cursor=cursor, team_id=TEAM_ID
         )
         for ch in resp["channels"]:
             if ch.get("name") == name:

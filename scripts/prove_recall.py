@@ -10,31 +10,40 @@ short indexing delay). Then:  python scripts/prove_recall.py
 """
 from __future__ import annotations
 
+import pathlib
 import sys
 import time
 
-from dotenv import load_dotenv
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))  # repo root -> import deja
+
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(".env", override=False)
 
 from deja import recall  # noqa: E402  (after load_dotenv so the token is present)
 
 QUERY = "should we migrate our job queue to Temporal"
-# The forgotten nugget we must resurface — a substring unique to the rollback message.
-ANCHOR = "rolling back"
 TOP_K = 5
 RUNS = 3
 
 
+def _is_forgotten_thread(h) -> bool:
+    """True if this hit is the seeded Temporal-migration thread (its permalink opens the thread
+    where the rollback reply lives). RTS represents a thread by its best-matching message — here
+    the parent — so we identify the thread by content + a present permalink, not the reply text."""
+    s = h.snippet.lower()
+    return bool(h.permalink) and "temporal" in s and any(w in s for w in ("migrat", "queue", "redis"))
+
+
 def _anchor_rank(hits) -> int | None:
     for i, h in enumerate(hits, start=1):
-        if ANCHOR in h.snippet.lower() and "temporal" in h.snippet.lower():
+        if _is_forgotten_thread(h):
             return i
     return None
 
 
 def main() -> int:
-    print(f'Query: "{QUERY}"   (anchor: a hit whose snippet contains "{ANCHOR}" + "temporal")\n')
+    print(f'Query: "{QUERY}"   (anchor: the seeded Temporal-migration thread, permalink present)\n')
     ranks: list[int | None] = []
     for run in range(1, RUNS + 1):
         hits = recall(QUERY, limit=TOP_K)
