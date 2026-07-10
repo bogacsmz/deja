@@ -3,8 +3,9 @@ from logging import Logger
 from slack_bolt.context.async_context import AsyncBoltContext
 from slack_bolt.context.say.async_say import AsyncSay
 
-from thread_context import session_store
-from listeners.events.app_mentioned import ALIVE_MESSAGE
+from deja.respond import recall_reply
+
+_MIN_LEN = 12  # cheap guard: skip trivially short messages before spending an LLM judgment
 
 
 async def handle_message(
@@ -13,32 +14,28 @@ async def handle_message(
     logger: Logger,
     say: AsyncSay,
 ):
-    """Handle DMs / engaged threads. Phase 1: static 'alive' reply, no LLM.
+    """Auto-trigger: on a normal channel/DM message, silently judge whether the team already
+    discussed this and, only if a past thread is found, reply in-thread. Non-disruptive by
+    design — Déjà says nothing unless it has a real 'you already tried this' to offer.
 
-    Scoping is unchanged from the scaffold so the bot stays quiet: it replies to DMs and to
-    thread replies where it was already engaged, and leaves top-level channel messages to
-    the app_mention handler.
+    (The bot must be a member of the channel to receive these events.)
     """
-    # Skip message subtypes (edits, deletes, etc.) and bot messages.
     if event.get("subtype") or event.get("bot_id"):
         return
 
-    is_dm = event.get("channel_type") == "im"
-    is_thread_reply = event.get("thread_ts") is not None
+    text = (event.get("text") or "").strip()
+    if len(text) < _MIN_LEN:
+        return
 
-    if is_dm:
-        pass
-    elif is_thread_reply:
-        # Only chime into a channel thread the bot is already engaged in.
-        if session_store.get_session(context.channel_id, event["thread_ts"]) is None:
-            return
-    else:
-        # Top-level channel messages are handled by app_mentioned.
+    # @mentions are handled by app_mentioned — skip here to avoid a double reply.
+    bot_uid = context.bot_user_id
+    if bot_uid and f"<@{bot_uid}>" in text:
         return
 
     thread_ts = event.get("thread_ts") or event["ts"]
     try:
-        await say(text=ALIVE_MESSAGE, thread_ts=thread_ts)
+        reply = await recall_reply(text)
+        if reply:
+            await say(text=reply, thread_ts=thread_ts)
     except Exception as e:
-        logger.exception(f"Failed to handle message: {e}")
-        await say(text=f":warning: Something went wrong! ({e})", thread_ts=thread_ts)
+        logger.exception(f"Déjà auto-trigger failed: {e}")
