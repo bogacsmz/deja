@@ -1,4 +1,5 @@
-import asyncio, sys
+import asyncio
+import sys
 from dotenv import load_dotenv; load_dotenv(".env", override=False)
 from deja.trigger import judge
 s=sys.argv[1]
