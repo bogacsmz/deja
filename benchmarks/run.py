@@ -31,10 +31,22 @@ load_dotenv(".env", override=False)
 from benchmarks.local import local_recall, local_thread  # noqa: E402
 from deja.arc import recall_arc  # noqa: E402
 from deja.memory import recall_memories  # noqa: E402
+from deja.trigger import judge  # noqa: E402
 
 # Retrieval primitives: local snapshot by default (RTS is rate-limited to ~1 call / few min, which
 # can't support this many queries). The synthesis engine under test is the real one.
 _RECALL, _THREAD = local_recall, local_thread
+
+# The benchmark runs the FULL live pipeline: judge(sentence) -> query, then the same retrieval the
+# live card uses (recall_arc expand=False). Both are cached to disk (DEJA_JUDGE_CACHE /
+# DEJA_EXPAND_CACHE) so runs are reproducible without an LLM call per case.
+
+
+async def _judge_query(sentence: str) -> str:
+    """The live front-end: does Déjà act, and on what query? '' means 'stay silent'."""
+    d = await judge(sentence)
+    return d.query if d.should_recall else ""
+
 
 # (query, kind, expected) — expected is a list of substrings (any-match, case-insensitive) that a
 # CORRECT standing decision contains; empty list means "should be inconclusive / no decision".
@@ -98,8 +110,11 @@ def _hit(expected: list[str], text: str) -> bool:
     return any(sub in low for sub in expected)
 
 
-async def _baseline(query: str) -> str:
-    """Single-hit recall: the top thread's own outcome (what plain search + one thread gives)."""
+async def _baseline(sentence: str) -> str:
+    """Baseline = judge (same front-end) -> single top hit's outcome, no arc synthesis."""
+    query = await _judge_query(sentence)
+    if not query:
+        return ""  # judge didn't act — a plain search wouldn't be invoked either
     result = await recall_memories(query, limit=1, recall_fn=_RECALL, thread_fn=_THREAD)
     mems = result.get("memories") or []
     if not mems:
@@ -107,9 +122,12 @@ async def _baseline(query: str) -> str:
     return mems[0].get("what_happened_next") or mems[0].get("source_message") or ""
 
 
-async def _deja(query: str) -> tuple[str, bool]:
-    """Déjà: the arc's standing decision (empty when inconclusive)."""
-    arc = await recall_arc(query, recall_fn=_RECALL, thread_fn=_THREAD)
+async def _deja(sentence: str) -> tuple[str, bool]:
+    """Déjà = judge -> recall_arc (the live card path: expand=False). Standing decision or silent."""
+    query = await _judge_query(sentence)
+    if not query:
+        return "", True  # judge stayed silent — no decision claimed
+    arc = await recall_arc(query, recall_fn=_RECALL, thread_fn=_THREAD, expand=False)
     if arc is None or arc.inconclusive:
         return "", True  # no decision claimed
     return arc.standing_decision, False

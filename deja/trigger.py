@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import pathlib
 import re
 from dataclasses import dataclass
 
@@ -25,6 +27,26 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
     TextBlock,
 )
+
+# Optional on-disk cache (DEJA_JUDGE_CACHE=<path>): judge each message once. The benchmark sets it so
+# it runs the SAME judge step the live app does, reproducibly, without an LLM call per case in a loop.
+_CACHE_PATH = (
+    pathlib.Path(os.environ["DEJA_JUDGE_CACHE"])
+    if os.environ.get("DEJA_JUDGE_CACHE")
+    else None
+)
+
+
+def _load_cache() -> dict:
+    if _CACHE_PATH and _CACHE_PATH.exists():
+        try:
+            return json.loads(_CACHE_PATH.read_text())
+        except (ValueError, OSError):
+            return {}
+    return {}
+
+
+_CACHE: dict = _load_cache()
 
 _SYSTEM = """You are Déjà's trigger gate inside Slack. Given ONE message, decide whether it is a
 decision, claim, proposal, or substantive question that a team might have discussed or tried
@@ -67,6 +89,9 @@ def _parse(text: str) -> TriggerDecision:
 
 async def judge(message: str) -> TriggerDecision:
     """Return Déjà's judgment on whether `message` warrants a recall (+ a search query)."""
+    if message in _CACHE:
+        c = _CACHE[message]
+        return TriggerDecision(c["should_recall"], c["query"], c["reason"])
     options = ClaudeAgentOptions(
         system_prompt=_SYSTEM,
         permission_mode="bypassPermissions",
@@ -84,4 +109,15 @@ async def judge(message: str) -> TriggerDecision:
     except Exception as e:  # noqa: BLE001 — LLM/auth/transport failure -> fail safe, don't trigger
         _log.warning("trigger: judge unavailable (%s); defaulting to no-recall", e)
         return TriggerDecision(False, "", "judge unavailable")
-    return _parse(text)
+    decision = _parse(text)
+    if _CACHE_PATH:
+        _CACHE[message] = {
+            "should_recall": decision.should_recall,
+            "query": decision.query,
+            "reason": decision.reason,
+        }
+        try:
+            _CACHE_PATH.write_text(json.dumps(_CACHE, ensure_ascii=False, indent=1))
+        except OSError:
+            pass
+    return decision

@@ -1,0 +1,167 @@
+{
+ "should we migrate our job queue to Temporal?": {
+  "should_recall": true,
+  "query": "Temporal job queue",
+  "reason": "infrastructure migration proposal"
+ },
+ "is Temporal a good fit for our pipeline?": {
+  "should_recall": true,
+  "query": "Temporal pipeline",
+  "reason": "tooling-choice question likely discussed before"
+ },
+ "should we adopt Datadog for monitoring?": {
+  "should_recall": true,
+  "query": "Datadog monitoring",
+  "reason": "tooling adoption decision"
+ },
+ "can we use Datadog APM?": {
+  "should_recall": true,
+  "query": "Datadog APM",
+  "reason": "substantive tooling question"
+ },
+ "should we switch to continuous deploy?": {
+  "should_recall": true,
+  "query": "continuous deploy",
+  "reason": "deployment process proposal likely discussed before"
+ },
+ "are we doing weekly release trains or continuous deploy?": {
+  "should_recall": true,
+  "query": "release train continuous deploy",
+  "reason": "deployment cadence decision"
+ },
+ "should we use MongoDB as our primary datastore?": {
+  "should_recall": true,
+  "query": "MongoDB datastore",
+  "reason": "datastore technology decision"
+ },
+ "monorepo or polyrepo?": {
+  "should_recall": true,
+  "query": "monorepo polyrepo",
+  "reason": "recurring repo-structure design question"
+ },
+ "should we run our own Kubernetes cluster?": {
+  "should_recall": true,
+  "query": "self-hosted Kubernetes cluster",
+  "reason": "infrastructure proposal likely debated before"
+ },
+ "should we move to usage-based pricing?": {
+  "should_recall": true,
+  "query": "usage-based pricing",
+  "reason": "pricing model proposal likely discussed before"
+ },
+ "should we build our own auth?": {
+  "should_recall": true,
+  "query": "build auth",
+  "reason": "proposal to build custom authentication"
+ },
+ "should we standardize on MUI?": {
+  "should_recall": true,
+  "query": "MUI component library",
+  "reason": "proposal to standardize UI library"
+ },
+ "should we keep the sync daily standup?": {
+  "should_recall": true,
+  "query": "daily standup",
+  "reason": "process decision likely discussed before"
+ },
+ "is the coffee machine on the 3rd floor working?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "facilities small talk"
+ },
+ "tabs or spaces?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "trivial style banter, not a substantive decision"
+ },
+ "what time is the lunch and learn?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "logistics scheduling question"
+ },
+ "should we migrate to CockroachDB?": {
+  "should_recall": true,
+  "query": "CockroachDB migration",
+  "reason": "database migration proposal"
+ },
+ "should we rewrite everything in Rust?": {
+  "should_recall": true,
+  "query": "rewrite Rust",
+  "reason": "proposal to change core tech stack"
+ },
+ "did we end up adopting Temporal?": {
+  "should_recall": true,
+  "query": "Temporal workflow engine",
+  "reason": "past decision on tooling adoption"
+ },
+ "what's our background job system now?": {
+  "should_recall": true,
+  "query": "background job system",
+  "reason": "asks about current job infrastructure choice"
+ },
+ "are we still paying for Datadog?": {
+  "should_recall": true,
+  "query": "Datadog subscription",
+  "reason": "question about ongoing vendor spend"
+ },
+ "what observability stack did we land on?": {
+  "should_recall": true,
+  "query": "observability stack",
+  "reason": "past tooling decision"
+ },
+ "do we deploy on every merge to main?": {
+  "should_recall": true,
+  "query": "deploy merge main",
+  "reason": "question about deploy-on-merge practice"
+ },
+ "did we get rid of the weekly release trains?": {
+  "should_recall": true,
+  "query": "weekly release trains",
+  "reason": "question about past release-process decision"
+ },
+ "Postgres or Mongo for the core datastore?": {
+  "should_recall": true,
+  "query": "Postgres Mongo datastore",
+  "reason": "database choice decision"
+ },
+ "do we self-host our container platform?": {
+  "should_recall": true,
+  "query": "container platform self-host",
+  "reason": "infra hosting decision"
+ },
+ "did we build or buy authentication?": {
+  "should_recall": true,
+  "query": "authentication build buy",
+  "reason": "past build-vs-buy decision"
+ },
+ "what did we pick for styling the UI?": {
+  "should_recall": true,
+  "query": "UI styling",
+  "reason": "asks about past styling decision"
+ },
+ "is our daily standup a meeting or async?": {
+  "should_recall": true,
+  "query": "daily standup async",
+  "reason": "team process question likely discussed before"
+ },
+ "anyone looking at the flaky checkout test?": {
+  "should_recall": true,
+  "query": "flaky checkout test",
+  "reason": "recurring test failure likely discussed before"
+ },
+ "should we adopt GraphQL for the API?": {
+  "should_recall": true,
+  "query": "GraphQL API",
+  "reason": "tech adoption question likely discussed before"
+ },
+ "are we moving to Kafka for events?": {
+  "should_recall": true,
+  "query": "Kafka events",
+  "reason": "question about a past architecture decision"
+ },
+ "who's on call this weekend?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "logistics question about current on-call schedule"
+ }
+}
