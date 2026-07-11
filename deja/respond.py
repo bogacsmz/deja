@@ -69,7 +69,9 @@ async def recall_card(
     if not decision.should_recall or not decision.query:
         return None
 
-    arc = await recall_arc(decision.query, exclude_ts=exclude_ts)
+    # expand=False: the live card stays fast + light on the rate-limited RTS (no LLM in the hot
+    # path). Seeded/real topics retrieve directly; MCP + benchmark keep full expansion.
+    arc = await recall_arc(decision.query, exclude_ts=exclude_ts, expand=False)
     if arc is None or (arc.inconclusive and not arc.is_recurring):
         return None  # nothing found, or just a single unresolved proposal — stay quiet
 

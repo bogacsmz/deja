@@ -294,6 +294,7 @@ async def recall_arc(
     exclude_ts: str | None = None,
     recall_fn=None,
     thread_fn=None,
+    expand: bool = True,
 ) -> DecisionArc | None:
     """Gather the topic's threads via recall_memories and synthesize the arc.
 
@@ -320,8 +321,10 @@ async def recall_arc(
 
     # Expand when the first pass has no standing decision — whether it returned a reopen/proposal
     # thread (inconclusive) or nothing at all (None: the query's wording shares no term with the
-    # threads). Both are exactly when a second, topic-aware retrieval is needed.
-    if arc is None or arc.inconclusive:
+    # threads). Both are exactly when a second, topic-aware retrieval is needed. The live Slack card
+    # path passes expand=False to stay fast + light on the rate-limited RTS (no LLM in the hot path);
+    # the MCP + benchmark paths keep it on for arbitrary agent queries.
+    if expand and (arc is None or arc.inconclusive):
         terms = keep_specific(_topic_anchors(query, base))
         if terms:
             memories, arc = await _cluster(
