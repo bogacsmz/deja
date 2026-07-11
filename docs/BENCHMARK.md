@@ -12,7 +12,7 @@ kind       query                                              baseline   déjà
 ------------------------------------------------------------------------------
 recurring  should we migrate our job queue to Temporal?              ✗      ✓
 recurring  is Temporal a good fit for our pipeline?                  ✗      ✓
-recurring  should we adopt Datadog for monitoring?                   ✓      ✓
+recurring  should we adopt Datadog for monitoring?                   ✗      ✓
 recurring  can we use Datadog APM?                                   ✗      ✓
 recurring  should we switch to continuous deploy?                    ✓      ✓
 recurring  are we doing weekly release trains or continuous d        ✓      ✓
@@ -29,7 +29,7 @@ negative   what time is the lunch and learn?                     FALSE     ok
 negative   should we migrate to CockroachDB?                     FALSE     ok
 negative   should we rewrite everything in Rust?                    ok     ok
 
-  recurring (correct standing decision):  baseline 3/6   Déjà 6/6
+  recurring (correct standing decision):  baseline 2/6   Déjà 6/6
   single    (correct standing decision):  baseline 6/7   Déjà 6/7
   negatives (FALSE decisions, lower=better): baseline 4/5   Déjà 0/5
 

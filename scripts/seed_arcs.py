@@ -257,10 +257,67 @@ NOISE = (
     ),
 )
 
+# --- Arc 4: RFC / design-doc process — discussed 3× across months, NEVER decided (INCONCLUSIVE) ---
+# Every reply is an opinion or a deferral; NONE contains a decision cue, so the arc stays honestly
+# inconclusive (Déjà surfaces the discussion but invents no standing decision). Distinct keyword
+# ("RFC / design-doc") so it doesn't collide with the settled arcs or the single decisions.
+RFC = (
+    Thread(
+        "eng",
+        "‹deja-arc:rfc-1›",
+        Msg(
+            "Alex Rivera",
+            "[Feb 20] Should we adopt a lightweight RFC / design-doc process for big "
+            "technical decisions? We keep re-hashing the same debates in threads.",
+        ),
+        (
+            Msg(
+                "Maya Chen",
+                "+1 in spirit, though I worry it turns bureaucratic. Who'd own reviewing "
+                "them?",
+            ),
+        ),
+    ),
+    Thread(
+        "product",
+        "‹deja-arc:rfc-2›",
+        Msg(
+            "Priya Nair",
+            "[Apr 8] Reviving the RFC / design-doc idea — a couple of calls lately "
+            "would've been smoother with a written proposal first. Worth a trial?",
+        ),
+        (
+            Msg(
+                "Diego Santos",
+                "maybe? I've seen it help and I've seen it stall teams. Not sure where "
+                "we'd land.",
+            ),
+            Msg("Alex Rivera", "let's chat about it sometime."),
+        ),
+    ),
+    Thread(
+        "eng",
+        "‹deja-arc:rfc-3›",
+        Msg(
+            "Tom Becker",
+            "[Jun 12] Coming back to the RFC / design-doc process question — should we "
+            "just try it for one quarter and see?",
+        ),
+        (
+            Msg(
+                "Priya Nair",
+                "I'm open to it but nobody's driving it. Let's revisit at next planning.",
+            ),
+            Msg("Tom Becker", "fair, parking it again 😅"),
+        ),
+    ),
+)
+
 ARCS = {
     "Temporal job queue": TEMPORAL,
     "Observability vendor": MONITORING,
     "Deploy cadence": DEPLOY,
+    "RFC / design-doc process": RFC,
 }
 ALL_THREADS = [t for arc in ARCS.values() for t in arc] + list(NOISE)
 # Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above.
