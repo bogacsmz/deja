@@ -1,51 +1,62 @@
-# Déjà — Slack Agent (Phase 1 skeleton)
+# Déjà — the team memory that stops you re-litigating decisions
 
-**What it will be:** when a decision/claim/question surfaces in a channel, Déjà recalls the concrete past thread your team already had on it and posts a clean Block Kit memory card ("you tried this 4 months ago → thread"). Recall is also exposed as an MCP tool. Engine: *powered by Legibright*. **Phase 1 (this repo right now) is the empty skeleton only — no RTS API / MCP / Block Kit / LLM logic yet.**
+When a decision, claim, or proposal comes up in a Slack channel, **Déjà** quietly surfaces the
+concrete past thread your team already had on it — **and what was decided** — as a clean Block Kit
+memory card. Its memory is also a standalone **MCP tool** any external agent can call.
 
-**Stack chosen — Bolt for Python + Claude Agent SDK** (Slack CLI, BYO-LLM = Claude/Anthropic), scaffolded via `slack create … --template slack-samples/bolt-python-starter-agent --subdir claude-agent-sdk`. Python over JS because the quickstart supports both equally and Python buys us Legibright reuse + Pydantic-AI proximity.
+> ⏳ **Déjà vu — your team already discussed this** · #eng
+> *"Kicking off the migration from Redis to Temporal…"*
+> 🧵 **What happened next:** *"Rolling back — operational overhead isn't worth it. Sticking with Redis."*
+> 🔒 Only searches channels you can access · powered by Legibright
 
-**Run it against the Deja sandbox:**
-1. `slack login` — authorize the CLI in the Deja workspace (opens a browser; bogac approves).
-2. `cp .env.sample .env` and set `ANTHROPIC_API_KEY` (not needed for the Phase-1 alive reply; required from Phase 2 on).
-3. `slack run` — installs the app to Deja and runs it locally in socket mode.
-4. In Slack, `@Déjà …` in a channel (or DM the app) → it replies *"Déjà çevrimiçi …"*. That round-trip is the Phase-1 done-signal.
+**Slack Agent Builder Challenge · New Slack Agent track.** Two required technologies: **RTS recall**
+(`assistant.search.context`, permission-aware) + **MCP** (a `recall_memory` tool). The LLM trigger
+runs on a **Claude Max subscription** — no paid API key.
 
-## MCP server — query Déjà's memory from any agent
-
-Déjà's memory is also a standalone **MCP server**, so any agent or IDE (Cursor, Claude Desktop,
-Agentforce) can call `recall_memory` and pull the team's past decisions — the second required
-technology (RTS + MCP) and the composability story.
-
-Run it (stdio, the default for local clients; `DEJA_MCP_TRANSPORT=streamable-http` for remote):
+## Quick start
 ```bash
-python -m deja.mcp_server        # or the console script: deja-mcp
+pip install -e ".[test]"
+cp .env.sample .env         # SLACK_USER_TOKEN (xoxp) + CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`)
+slack run                   # the Slack app (Socket Mode): auto-trigger + memory cards
+python -m deja.mcp_server   # the MCP server (stdio) for external agents
+python scripts/verify_all.py   # the cross-phase gate — one green table (below)
 ```
 
-Wire it into Cursor (`.cursor/mcp.json`) or Claude Desktop (`claude_desktop_config.json`):
+## How it was built (the phase story)
+| Phase | What shipped | Gate proof in `verify_all` |
+|---|---|---|
+| 1 · Skeleton | Bolt app boots, listeners wired | `deja imports`, `manifest valid` |
+| 2 · Recall (RTS) | Forgotten thread resurfaces, deterministic | `recall resurfaces decision 3/3` |
+| 3 · Judge→Recall→Reply | LLM trigger (Max subscription), end-to-end | `pipeline PASS`, `trigger 4/4` |
+| 4 · Block Kit card | Interactive card + App Home + privacy | `card builders`, `App Home view` |
+| 5 · MCP | `recall_memory` tool + real stdio client | `recall_memory unit`, `MCP stdio` |
+| 6 · Seed | Realistic 8-thread / 5-channel workspace | `seed integrity`, `seed dry-run` |
+| 7 · Docs | Architecture · submission · demo · review | — |
+
+**One command proves it all:** `python scripts/verify_all.py` → a phase-by-phase ✅ table
+(`--no-live` for the hermetic subset in CI). See [`docs/architecture.md`](docs/architecture.md) ·
+[`docs/SUBMISSION.md`](docs/SUBMISSION.md) · [`docs/DEMO.md`](docs/DEMO.md) ·
+[`docs/PHASE-REVIEW.md`](docs/PHASE-REVIEW.md) · [`docs/HARDENING.md`](docs/HARDENING.md).
+
+## MCP — query Déjà's memory from any agent
+```bash
+python -m deja.mcp_server   # stdio (Cursor/Claude Desktop); DEJA_MCP_TRANSPORT=streamable-http for remote
+```
+Wire into Cursor (`.cursor/mcp.json`) or Claude Desktop (`claude_desktop_config.json`):
 ```json
 { "mcpServers": { "deja": {
   "command": ".venv/bin/python", "args": ["-m", "deja.mcp_server"],
   "cwd": "/absolute/path/to/slackhack"
 } } }
 ```
+`recall_memory(query, channel=None, limit=3)` → `{summary, memories:[{source_message,
+what_happened_next, channel, author, ts, permalink, score}], searched}`. Permission-aware (user
+token). Verify end-to-end with `python scripts/mcp_smoke.py`.
 
-**Tool** — `recall_memory(query, channel=None, limit=3)` returns structured content:
-```json
-{
-  "summary": "Your team already had 1 relevant discussion — most relevant in #general: Update after 3 weeks: we're ROLLING BACK the Temporal migration…",
-  "memories": [{
-    "source_message": "Kicking off the migration from our Redis-based job queue to Temporal…",
-    "what_happened_next": "Update after 3 weeks: we're ROLLING BACK the Temporal migration…",
-    "channel": "general", "author": "…", "ts": "…", "permalink": "https://…", "score": 0.67
-  }],
-  "searched": "should we migrate our job queue to Temporal"
-}
-```
-
-**Permission-aware:** the server searches with the configured user's RTS token, so it only ever sees
-channels that user can already access. In production this would be per-user OAuth; for the sandbox
-the single user token is enough. Verify end-to-end (real MCP client over stdio) with
-`python scripts/mcp_smoke.py`. (Architecture diagram — Phase 7 — should show this MCP arm.)
+## Layout
+`deja/` — the engine (`recall`/RTS · `trigger`/LLM · `thread` enrichment · `card` · `memory` ·
+`mcp_server`) · `listeners/` — Slack events/actions/views · `scripts/` — seed + verify + smoke ·
+`tests/` · `docs/`. The Bolt starter-template README this was scaffolded from is preserved below.
 
 ---
 
