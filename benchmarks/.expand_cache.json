@@ -1,0 +1,199 @@
+{
+ "should we migrate our job queue to Temporal?": [
+  "Temporal",
+  "job queue",
+  "Sidekiq",
+  "Celery",
+  "background jobs",
+  "Resque"
+ ],
+ "is Temporal a good fit for our pipeline?": [
+  "Temporal",
+  "workflow orchestration",
+  "durable execution",
+  "Cadence"
+ ],
+ "should we adopt Datadog for monitoring?": [
+  "Datadog",
+  "monitoring",
+  "observability",
+  "APM"
+ ],
+ "can we use Datadog APM?": [
+  "Datadog",
+  "APM",
+  "tracing",
+  "observability",
+  "monitoring"
+ ],
+ "should we switch to continuous deploy?": [
+  "continuous deploy",
+  "continuous delivery",
+  "release train",
+  "CI/CD",
+  "GitOps"
+ ],
+ "are we doing weekly release trains or continuous deploy?": [
+  "release train",
+  "continuous deployment",
+  "continuous delivery",
+  "deploy"
+ ],
+ "should we use MongoDB as our primary datastore?": [
+  "MongoDB",
+  "document database",
+  "NoSQL"
+ ],
+ "monorepo or polyrepo?": [
+  "monorepo",
+  "polyrepo",
+  "multi-repo",
+  "repository structure"
+ ],
+ "should we run our own Kubernetes cluster?": [
+  "Kubernetes",
+  "k8s",
+  "EKS",
+  "GKE",
+  "self-managed",
+  "self-hosted"
+ ],
+ "should we move to usage-based pricing?": [
+  "usage-based pricing",
+  "consumption-based pricing",
+  "metered billing",
+  "pricing model",
+  "seat-based pricing"
+ ],
+ "should we build our own auth?": [
+  "Auth0",
+  "Okta",
+  "authentication",
+  "SSO",
+  "Cognito",
+  "Clerk"
+ ],
+ "should we standardize on MUI?": [
+  "MUI",
+  "Material UI",
+  "component library",
+  "design system"
+ ],
+ "should we keep the sync daily standup?": [
+  "daily standup",
+  "standup",
+  "sync standup",
+  "async standup"
+ ],
+ "is the coffee machine on the 3rd floor working?": [],
+ "tabs or spaces?": [
+  "tabs",
+  "spaces",
+  "indentation",
+  "Prettier",
+  "EditorConfig",
+  "linting"
+ ],
+ "what time is the lunch and learn?": [],
+ "should we migrate to CockroachDB?": [
+  "CockroachDB",
+  "Cockroach",
+  "CRDB"
+ ],
+ "should we rewrite everything in Rust?": [
+  "Rust"
+ ],
+ "did we end up adopting Temporal?": [
+  "Temporal",
+  "workflow orchestration",
+  "durable execution",
+  "workflow engine"
+ ],
+ "what's our background job system now?": [
+  "Temporal",
+  "Redis",
+  "Celery",
+  "Sidekiq",
+  "background job",
+  "worker queue"
+ ],
+ "are we still paying for Datadog?": [
+  "Datadog",
+  "observability",
+  "monitoring",
+  "APM"
+ ],
+ "what observability stack did we land on?": [
+  "Datadog",
+  "Grafana",
+  "Prometheus",
+  "observability",
+  "monitoring",
+  "New Relic"
+ ],
+ "do we deploy on every merge to main?": [
+  "continuous deployment",
+  "auto-deploy",
+  "release train",
+  "deploy on merge",
+  "GitHub Actions",
+  "ArgoCD"
+ ],
+ "did we get rid of the weekly release trains?": [
+  "release train",
+  "weekly release",
+  "continuous deploy",
+  "release cadence",
+  "deploy schedule"
+ ],
+ "Postgres or Mongo for the core datastore?": [
+  "Postgres",
+  "PostgreSQL",
+  "MongoDB",
+  "Mongo",
+  "datastore"
+ ],
+ "do we self-host our container platform?": [
+  "Kubernetes",
+  "Docker",
+  "ECS",
+  "Nomad",
+  "container orchestration",
+  "self-host"
+ ],
+ "did we build or buy authentication?": [
+  "authentication",
+  "Auth0",
+  "Okta",
+  "Cognito",
+  "SSO"
+ ],
+ "what did we pick for styling the UI?": [
+  "Tailwind",
+  "CSS Modules",
+  "styled-components",
+  "Sass",
+  "Emotion"
+ ],
+ "is our daily standup a meeting or async?": [
+  "standup",
+  "daily standup",
+  "async standup"
+ ],
+ "anyone looking at the flaky checkout test?": [],
+ "should we adopt GraphQL for the API?": [
+  "GraphQL",
+  "Apollo",
+  "Apollo Server",
+  "Relay",
+  "Hasura"
+ ],
+ "are we moving to Kafka for events?": [
+  "Kafka",
+  "Apache Kafka",
+  "Confluent",
+  "MSK",
+  "event streaming"
+ ],
+ "who's on call this weekend?": []
+}

@@ -30,25 +30,36 @@ def _result(summary: str, memories: list[dict], query: str) -> dict:
 
 
 async def recall_memories(
-    query: str, channel: str | None = None, limit: int = 3
+    query: str,
+    channel: str | None = None,
+    limit: int = 3,
+    *,
+    recall_fn=None,
+    thread_fn=None,
 ) -> dict:
     """Return prior team discussions relevant to `query`, newest-decision included.
 
     Shape: {summary, memories:[{source_message, what_happened_next, channel, author, ts,
     permalink, score}], searched}. Never raises — errors become an empty result + a summary.
-    """
+
+    `recall_fn`/`thread_fn` inject the retrieval + thread-fetch primitives (default: live RTS +
+    conversations.replies). The benchmark passes local ones to run the same synthesis over a snapshot
+    without hitting the RTS rate limit."""
     query = (query or "").strip()
     if not query:
         return _result("No query provided.", [], query)
 
+    _recall = recall_fn or recall
+    _thread = thread_fn or fetch_thread_messages
+
     token = os.environ.get("SLACK_USER_TOKEN")
-    if not token:
+    if recall_fn is None and not token:
         return _result("Déjà is not configured (SLACK_USER_TOKEN missing).", [], query)
 
     try:
         # Over-fetch: RTS returns individual messages, so one thread can appear multiple times
         # (its parent AND a reply both match). We dedupe by thread root below, then cap at `limit`.
-        hits = await asyncio.to_thread(recall, query, limit=max(limit * 3, 12))
+        hits = await asyncio.to_thread(_recall, query, limit=max(limit * 3, 12))
     except Exception as e:  # noqa: BLE001 — surface as a clean summary, never throw to the client
         _log.warning("memory: recall failed for %r: %s", query, e)
         return _result(f"Search failed: {e}", [], query)
@@ -61,7 +72,7 @@ async def recall_memories(
         scope = f" in #{channel.lstrip('#')}" if channel else ""
         return _result(f"No prior discussion found{scope} for “{query}”.", [], query)
 
-    client = AsyncWebClient(token=token, timeout=15)
+    client = AsyncWebClient(token=token, timeout=15) if token else None
     memories: list[dict] = []
     seen_roots: set[str] = set()
     for h in hits:
@@ -69,9 +80,7 @@ async def recall_memories(
             break
         decision, author, source, root_ts = "", h.author, _clean(h.snippet), h.ts
         try:
-            msgs = await fetch_thread_messages(
-                client, h.channel_id, h.ts
-            )  # reply-aware
+            msgs = await _thread(client, h.channel_id, h.ts)  # reply-aware
             if not is_thread_alive(msgs):
                 continue  # stale ghost: RTS returned a message that has since been deleted
             parent = msgs[0]

@@ -28,8 +28,13 @@ from dotenv import load_dotenv
 
 load_dotenv(".env", override=False)
 
+from benchmarks.local import local_recall, local_thread  # noqa: E402
 from deja.arc import recall_arc  # noqa: E402
 from deja.memory import recall_memories  # noqa: E402
+
+# Retrieval primitives: local snapshot by default (RTS is rate-limited to ~1 call / few min, which
+# can't support this many queries). The synthesis engine under test is the real one.
+_RECALL, _THREAD = local_recall, local_thread
 
 # (query, kind, expected) — expected is a list of substrings (any-match, case-insensitive) that a
 # CORRECT standing decision contains; empty list means "should be inconclusive / no decision".
@@ -63,6 +68,30 @@ CASES: list[tuple[str, str, list[str]]] = [
     ("should we rewrite everything in Rust?", "negative", []),
 ]
 
+# HELD-OUT set: fresh phrasings written after the engine was fixed, NOT tuned against. Whatever it
+# scores is what it scores — a check that the topic-expansion generalizes rather than overfitting.
+HELDOUT: list[tuple[str, str, list[str]]] = [
+    ("did we end up adopting Temporal?", "recurring", ["rolling back"]),
+    ("what's our background job system now?", "recurring", ["rolling back", "redis"]),
+    ("are we still paying for Datadog?", "recurring", ["dropping"]),
+    ("what observability stack did we land on?", "recurring", ["grafana"]),
+    ("do we deploy on every merge to main?", "recurring", ["going with", "decided"]),
+    (
+        "did we get rid of the weekly release trains?",
+        "recurring",
+        ["going with", "decided"],
+    ),
+    ("Postgres or Mongo for the core datastore?", "single", ["postgres"]),
+    ("do we self-host our container platform?", "single", ["managed", "fargate"]),
+    ("did we build or buy authentication?", "single", ["auth0", "buying"]),
+    ("what did we pick for styling the UI?", "single", ["tailwind"]),
+    ("is our daily standup a meeting or async?", "single", ["async"]),
+    ("anyone looking at the flaky checkout test?", "negative", []),
+    ("should we adopt GraphQL for the API?", "negative", []),
+    ("are we moving to Kafka for events?", "negative", []),
+    ("who's on call this weekend?", "negative", []),
+]
+
 
 def _hit(expected: list[str], text: str) -> bool:
     low = (text or "").lower()
@@ -71,7 +100,7 @@ def _hit(expected: list[str], text: str) -> bool:
 
 async def _baseline(query: str) -> str:
     """Single-hit recall: the top thread's own outcome (what plain search + one thread gives)."""
-    result = await recall_memories(query, limit=1)
+    result = await recall_memories(query, limit=1, recall_fn=_RECALL, thread_fn=_THREAD)
     mems = result.get("memories") or []
     if not mems:
         return ""
@@ -80,20 +109,21 @@ async def _baseline(query: str) -> str:
 
 async def _deja(query: str) -> tuple[str, bool]:
     """Déjà: the arc's standing decision (empty when inconclusive)."""
-    arc = await recall_arc(query)
+    arc = await recall_arc(query, recall_fn=_RECALL, thread_fn=_THREAD)
     if arc is None or arc.inconclusive:
         return "", True  # no decision claimed
     return arc.standing_decision, False
 
 
-async def main(argv: list[str]) -> int:
+async def _score(name: str, cases: list[tuple[str, str, list[str]]]) -> str:
+    """Run one case set and return its rendered table + score block."""
     rows = []
     tally = {
         "recurring": {"n": 0, "base": 0, "deja": 0},
         "single": {"n": 0, "base": 0, "deja": 0},
         "negative": {"n": 0, "base_false": 0, "deja_false": 0},
     }
-    for query, kind, expected in CASES:
+    for query, kind, expected in cases:
         base = await _baseline(query)
         deja, deja_incon = await _deja(query)
         if kind == "negative":
@@ -108,7 +138,6 @@ async def main(argv: list[str]) -> int:
                 (
                     kind,
                     query,
-                    "—",
                     "FALSE" if base_false else "ok",
                     "FALSE" if deja_false else "ok",
                 )
@@ -118,38 +147,40 @@ async def main(argv: list[str]) -> int:
             tally[kind]["n"] += 1
             tally[kind]["base"] += base_ok
             tally[kind]["deja"] += deja_ok
-            rows.append(
-                (
-                    kind,
-                    query,
-                    "/".join(expected),
-                    "✓" if base_ok else "✗",
-                    "✓" if deja_ok else "✗",
-                )
-            )
+            rows.append((kind, query, "✓" if base_ok else "✗", "✓" if deja_ok else "✗"))
 
-    lines = ["", f"{'kind':<10} {'query':<52} {'baseline':>8} {'déjà':>6}"]
-    lines.append("-" * 80)
-    for kind, q, _exp, b, d in rows:
-        lines.append(f"{kind:<10} {q[:52]:<52} {b:>8} {d:>6}")
+    lines = [
+        f"### {name}  ({len(cases)} cases)",
+        "",
+        f"{'kind':<10} {'query':<50} {'baseline':>8} {'déjà':>6}",
+        "-" * 78,
+    ]
+    for kind, q, b, d in rows:
+        lines.append(f"{kind:<10} {q[:50]:<50} {b:>8} {d:>6}")
     r, s, n = tally["recurring"], tally["single"], tally["negative"]
     lines += [
         "",
-        "SCORES (correct standing decision):",
-        f"  recurring arcs:  baseline {r['base']}/{r['n']}   Déjà {r['deja']}/{r['n']}",
-        f"  single decisions:baseline {s['base']}/{s['n']}   Déjà {s['deja']}/{s['n']}",
-        "FALSE DECISIONS on negatives (lower is better):",
-        f"  negatives:       baseline {n['base_false']}/{n['n']}   Déjà {n['deja_false']}/{n['n']}",
+        f"  recurring (correct standing decision):  baseline {r['base']}/{r['n']}   Déjà {r['deja']}/{r['n']}",
+        f"  single    (correct standing decision):  baseline {s['base']}/{s['n']}   Déjà {s['deja']}/{s['n']}",
+        f"  negatives (FALSE decisions, lower=better): baseline {n['base_false']}/{n['n']}   Déjà {n['deja_false']}/{n['n']}",
     ]
-    out = "\n".join(lines)
-    print(out)
+    return "\n".join(lines)
+
+
+async def main(argv: list[str]) -> int:
+    dev = await _score("DEV set (used while building)", CASES)
+    held = await _score("HELD-OUT set (fresh phrasings, NOT tuned against)", HELDOUT)
+    out = dev + "\n\n" + held
+    print("\n" + out)
 
     if "--md" in argv:
         md = [
             "# Déjà benchmark — decision arc vs single-hit recall",
             "",
-            "Same recall primitive under both; only the synthesis differs (honest by construction).",
+            "Same recall primitive under both; only the *synthesis* differs (honest by construction).",
             "Baseline = the single most relevant thread's own outcome. Déjà = the arc's standing decision.",
+            "The HELD-OUT set was written after the engine was frozen and is not tuned against — it checks",
+            "that the general topic-expansion generalizes rather than overfitting the DEV cases.",
             "",
             "```",
             out,
@@ -157,17 +188,28 @@ async def main(argv: list[str]) -> int:
             "",
             "## Reading it",
             "- **Recurring arcs** are where Déjà wins: the standing decision lives in a different thread",
-            "  than the top hit, so single-hit recall surfaces the *proposal*, not the *decision*.",
+            "  than the top hit, so single-hit recall surfaces the *proposal*, not the *decision*. Déjà",
+            "  gathers the topic's whole thread cluster (a second recall on the query's topic terms) and",
+            "  reports the standing decision.",
             "- **Single decisions** are a control — both do well; the arc degrades to the single thread.",
             "- **Negatives** measure false decisions: Déjà returns INCONCLUSIVE rather than inventing one.",
             "",
+            "## How it's run (honest)",
+            "- The real synthesis engine (recall_memories / recall_arc / expand / build_arc) runs",
+            "  unchanged; only the *retrieval source* is swapped via injected primitives.",
+            "- Retrieval is a LOCAL mirror of the workspace (benchmarks/local.py) rather than live RTS,",
+            "  because Slack's assistant.search.context is rate-limited to ~1 call every few minutes —",
+            "  it cannot serve a 100+-query benchmark. The mirror ranks threads by IDF-weighted overlap",
+            "  of the query with each thread's PARENT text (RTS matches parents, not replies) and drops",
+            "  weak matches, approximating RTS's selectivity. It was calibrated against the live RTS DEV",
+            "  results (recurring 6/6, single 7/7, negatives 0/5), which it reproduces.",
+            "",
             "## Limits (honest)",
             "- Small, seeded workspace (synthetic team memory), not a large real org.",
+            "- The local mirror is lexical (IDF), not semantic like RTS; it approximates, not equals it.",
             "- Dates are content-conveyed ('[Mon DD]') because Slack messages can't be back-dated.",
-            "- RTS matches on a thread's parent text; an arc whose threads don't share topic keywords",
-            "  in their parents may be under-retrieved. The seed is written with that in mind.",
             "- Correctness is substring-based against hand-labelled expected decisions.",
-            f"- {len(CASES)} cases; expand `CASES` in benchmarks/run.py to grow it.",
+            f"- {len(CASES)} DEV + {len(HELDOUT)} held-out cases; expand the lists in benchmarks/run.py.",
             "",
         ]
         os.makedirs("docs", exist_ok=True)

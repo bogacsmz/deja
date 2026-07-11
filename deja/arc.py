@@ -222,14 +222,126 @@ def render_record(arc: DecisionArc | None) -> str:
     return "\n".join(lines)
 
 
-async def recall_arc(
-    query: str, *, limit: int = 8, exclude_ts: str | None = None
-) -> DecisionArc | None:
-    """Gather the topic's threads via recall_memories and synthesize the arc."""
+_STOP = frozenset(
+    "the a an and or of to for in on our we you they it is are was were be been do does did "
+    "should would could can will may might must have has had this that these those with without "
+    "about into from as at by new good fit use using just get got keep back go going switch move "
+    "moving what when where why how which who vs versus still".split()
+)
+_ANCHOR_WORD = re.compile(r"[A-Za-z][A-Za-z0-9]{3,}")  # content words, ≥4 chars
+
+
+def _topic_anchors(query: str, memories: list[dict], k: int = 2) -> list[str]:
+    """Topic terms shared between the query and the recalled threads — the words to expand on.
+
+    General: the user's own content words that actually show up in what came back. No case-specific
+    keywords. Longer terms first (a light distinctiveness proxy: 'temporal' over 'pipeline' ties, but
+    both are kept and merged, so the decision-bearing sibling gets pulled in either way)."""
+    qwords = {w.lower() for w in _ANCHOR_WORD.findall(query)} - _STOP
+    text = " ".join(
+        f"{m.get('source_message', '')} {m.get('what_happened_next') or ''}"
+        for m in memories
+    ).lower()
+    twords = set(_ANCHOR_WORD.findall(text))
+    shared = sorted(qwords & twords, key=lambda w: (-len(w), w))
+    return shared[:k]
+
+
+def _on_topic(m: dict, terms: list[str]) -> bool:
+    blob = f"{m.get('source_message', '')} {m.get('what_happened_next') or ''}".lower()
+    return any(t.lower() in blob for t in terms)
+
+
+_SUBJECT_RE = re.compile(
+    r"\b([A-Z][A-Za-z0-9]{2,})\b"
+)  # capitalized, product-name-ish tokens
+
+
+def _query_subjects(query: str) -> list[str]:
+    """Specific product/proper-noun names in the query (Temporal, Kafka, CockroachDB, Postgres).
+
+    The subject guard: if the question names such a product, the answer must be about THAT product —
+    so a query for a never-discussed product ('CockroachDB', 'Kafka') can't be answered with a
+    different product's decision after expansion. Descriptive queries ('observability stack') have no
+    subject and expand freely."""
+    return [t for t in _SUBJECT_RE.findall(query) if t.lower() not in _STOP]
+
+
+async def _cluster(query, base, terms, limit, recall_fn, thread_fn):
+    """Recall each term, merge new threads with `base`, keep on-topic threads, rebuild the arc."""
     from deja.memory import recall_memories
 
-    result = await recall_memories(query, limit=limit)
-    memories = result.get("memories", [])
-    if exclude_ts:
-        memories = [m for m in memories if m.get("ts") != exclude_ts]
-    return build_arc(query, memories)
+    memories = list(base)
+    seen = {m.get("ts") for m in memories}
+    for term in terms[:4]:  # bound the extra recall calls
+        more = await recall_memories(
+            term, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
+        )
+        for m in more.get("memories", []):
+            if m.get("ts") not in seen:
+                memories.append(m)
+                seen.add(m.get("ts"))
+    memories = [
+        m for m in memories if _on_topic(m, terms)
+    ]  # stay on the topic, no drift
+    return memories, build_arc(query, memories)
+
+
+async def recall_arc(
+    query: str,
+    *,
+    limit: int = 8,
+    exclude_ts: str | None = None,
+    recall_fn=None,
+    thread_fn=None,
+) -> DecisionArc | None:
+    """Gather the topic's threads via recall_memories and synthesize the arc.
+
+    RTS matches a thread's parent text and returns only a few top hits, so a narrow query can pull a
+    topic's reopen/proposal thread but miss the sibling that holds the decision. When the first pass
+    is inconclusive we expand — in general, not per-case — in two stages:
+      1. lexical anchors: the query's own words that appear in what came back (free), then
+      2. LLM query expansion: the specific product/vendor names the question is about (closes the
+         semantic gap when the team's wording differs from the question's).
+    A subject guard keeps a named-product query from being answered with a different product's
+    decision, and the honesty invariant (no genuine decision → inconclusive) is untouched.
+
+    `recall_fn`/`thread_fn` inject retrieval + thread-fetch (default: live RTS); the benchmark passes
+    local ones to run the same synthesis over a snapshot without the RTS rate limit."""
+    from deja.expand import expand_query, keep_specific
+    from deja.memory import recall_memories
+
+    base = (
+        await recall_memories(
+            query, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
+        )
+    ).get("memories", [])
+    memories, arc = base, build_arc(query, base)
+
+    # Expand when the first pass has no standing decision — whether it returned a reopen/proposal
+    # thread (inconclusive) or nothing at all (None: the query's wording shares no term with the
+    # threads). Both are exactly when a second, topic-aware retrieval is needed.
+    if arc is None or arc.inconclusive:
+        terms = keep_specific(_topic_anchors(query, base))
+        if terms:
+            memories, arc = await _cluster(
+                query, base, terms, limit, recall_fn, thread_fn
+            )
+        if arc is None or arc.inconclusive:  # lexical didn't resolve it — ask the LLM
+            entities = await expand_query(query)
+            if entities:
+                terms = keep_specific(terms + entities)
+                memories, arc = await _cluster(
+                    query, base, terms, limit, recall_fn, thread_fn
+                )
+
+    # Subject guard: a specific product named in the query must appear in the arc, else the
+    # expansion drifted to an unrelated decision — don't claim it.
+    subjects = _query_subjects(query)
+    if subjects and arc is not None and not arc.inconclusive:
+        if not any(_on_topic(m, subjects) for m in memories):
+            arc = None
+
+    if exclude_ts and arc is not None:
+        arc = build_arc(query, [m for m in memories if m.get("ts") != exclude_ts])
+    return arc

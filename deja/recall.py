@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from typing import Any
 
 from slack_sdk import WebClient
@@ -32,6 +33,11 @@ _log = logging.getLogger(__name__)
 RTS_METHOD = "assistant.search.context"
 DEFAULT_CHANNEL_TYPES = ["public_channel", "private_channel", "mpim", "im"]
 _WORD = re.compile(r"[a-z0-9]{3,}")
+
+# Opt-in, process-scoped cache of RTS results, keyed by (query, limit). Off by default (live Slack
+# must stay fresh); the benchmark sets DEJA_RECALL_CACHE=1 so repeated topic queries across cases
+# don't re-hit the rate-limited RTS endpoint.
+_RTS_CACHE: dict[tuple[str, int], list[Hit]] = {}
 
 # Déjà must never recall its OWN output (cards, replies, dismissals) — it would pollute results
 # and loop. All of Déjà's messages carry its name or tagline, so drop any hit that looks like one.
@@ -126,18 +132,41 @@ def recall(
     `exclude_ts` drops the triggering message itself (so a fresh "should we do X?" doesn't recall
     *itself*). Déjà's own cards and empty-content hits are always filtered out.
     """
+    cacheable = (
+        exclude_ts is None
+        and channel_types is None
+        and os.environ.get("DEJA_RECALL_CACHE")
+    )
+    cache_key = (query, limit)
+    if cacheable and cache_key in _RTS_CACHE:
+        return _RTS_CACHE[cache_key]
+
+    pace = os.environ.get(
+        "DEJA_RECALL_PACE"
+    )  # benchmark-only: space calls to avoid self-throttle
+    if pace:
+        time.sleep(float(pace))
+
     client = WebClient(token=_resolve_token(token), timeout=15)
+    payload = {
+        "query": query,
+        "channel_types": channel_types or DEFAULT_CHANNEL_TYPES,
+        "limit": max(limit, 20),  # over-fetch, then we rank + trim deterministically
+    }
     try:
-        resp = client.api_call(
-            RTS_METHOD,
-            json={
-                "query": query,
-                "channel_types": channel_types or DEFAULT_CHANNEL_TYPES,
-                "limit": max(
-                    limit, 20
-                ),  # over-fetch, then we rank + trim deterministically
-            },
-        )
+        resp = None
+        for attempt in range(3):  # RTS is rate-limited; honor Retry-After and back off
+            try:
+                resp = client.api_call(RTS_METHOD, json=payload)
+                break
+            except SlackApiError as e:
+                if (e.response.data or {}).get(
+                    "error"
+                ) != "ratelimited" or attempt == 2:
+                    raise
+                wait = int(e.response.headers.get("Retry-After", 2 * (attempt + 1)))
+                _log.info("recall: rate-limited, retrying in %ss", wait)
+                time.sleep(wait)
     except SlackApiError as e:
         err = (e.response.data or {}).get("error")
         needed = (e.response.data or {}).get("needed")
@@ -162,7 +191,10 @@ def recall(
         key=lambda h: h.reply_count, reverse=True
     )  # 2nd: a discussed thread beats a lone line
     hits.sort(key=lambda h: h.score, reverse=True)  # 1st: query overlap
-    return hits[:limit]
+    result = hits[:limit]
+    if cacheable:
+        _RTS_CACHE[cache_key] = result
+    return result
 
 
 def debug_search(query: str, *, token: str | None = None) -> dict:
