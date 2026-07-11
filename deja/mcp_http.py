@@ -146,7 +146,9 @@ def main() -> None:
     import uvicorn
     from dotenv import load_dotenv
 
-    load_dotenv(".env", override=False)  # SLACK_SIGNING_SECRET + SLACK_USER_TOKEN for the running server
+    load_dotenv(
+        ".env", override=False
+    )  # SLACK_SIGNING_SECRET + SLACK_USER_TOKEN for the running server
     port = int(os.environ.get("DEJA_MCP_HTTP_PORT", "3000"))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
