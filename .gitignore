@@ -51,3 +51,4 @@ pip
 .tox
 tmp.txt
 deja_decisions.json
+.slack/

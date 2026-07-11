@@ -195,5 +195,12 @@
   "MSK",
   "event streaming"
  ],
- "who's on call this weekend?": []
+ "who's on call this weekend?": [],
+ "should we adopt an RFC / design-doc process?": [
+  "RFC",
+  "design doc",
+  "design review",
+  "ADR",
+  "architecture decision record"
+ ]
 }
