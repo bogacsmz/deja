@@ -33,7 +33,10 @@ acknowledgements are NOT worth recalling.
 
 Respond with ONLY a JSON object and nothing else:
 {"should_recall": true|false, "query": "<short keyword search query, or empty>", "reason": "<one short phrase>"}
-The query is the few keywords you would search past messages for (topic + key nouns)."""
+The query is the SEARCH TERMS for past messages — keep it to **2–3 core keywords**: the distinctive
+topic/product/process name and its key noun (e.g. "Temporal job queue", "Datadog monitoring", "RFC
+design-doc"). Do NOT pad it with generic words like "adoption", "process", "system", "approach", or
+verbs — extra terms make the search miss. Prefer the distinctive name over the filler around it."""
 
 
 @dataclass(frozen=True)
