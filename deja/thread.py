@@ -23,6 +23,12 @@ _DECISION_HINTS = (
     "went with",
     "going with",
     "dropping",
+    "outcome",  # "Outcome: we consolidated …"
+    "consolidated",
+    "killed",  # "we KILLED the sync standup"
+    "buying",  # "we're BUYING auth"
+    "standardizing",
+    "we tried",
     "sticking with",
     "instead",
     "in the end",
