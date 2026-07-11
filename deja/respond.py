@@ -12,19 +12,21 @@ from __future__ import annotations
 import asyncio
 import re
 
+from deja.card import build_memory_card
 from deja.recall import recall
+from deja.thread import fetch_decision
 from deja.trigger import judge
 
 _SEED_MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
 
 
-async def recall_reply(text: str, *, limit: int = 3) -> str | None:
+async def recall_reply(text: str, *, limit: int = 3, exclude_ts: str | None = None) -> str | None:
     decision = await judge(text)
     if not decision.should_recall or not decision.query:
         return None
 
     # recall() is sync (Slack WebClient) — run it off the event loop.
-    hits = await asyncio.to_thread(recall, decision.query, limit=limit)
+    hits = await asyncio.to_thread(recall, decision.query, limit=limit, exclude_ts=exclude_ts)
     if not hits:
         return None
 
@@ -37,3 +39,28 @@ async def recall_reply(text: str, *, limit: int = 3) -> str | None:
         f"(I searched _{decision.query}_):\n"
         f"• <{top.permalink}|#{top.channel}>: “{snippet}”"
     )
+
+
+async def recall_card(text: str, client, *, limit: int = 3, exclude_ts: str | None = None) -> dict | None:
+    """Full Phase-4 pipeline: judge -> recall -> fetch the decision -> build the Block Kit card.
+
+    Returns {"blocks": [...], "text": fallback} or None when there's nothing worth surfacing.
+    `client` is a Slack (Async)WebClient used to fetch the thread's replies.
+    """
+    decision = await judge(text)
+    if not decision.should_recall or not decision.query:
+        return None
+
+    hits = await asyncio.to_thread(recall, decision.query, limit=limit, exclude_ts=exclude_ts)
+    if not hits:
+        return None
+    top = hits[0]
+
+    outcome = None
+    try:
+        outcome = await fetch_decision(client, top.channel_id, top.ts)
+    except Exception:  # enrichment is best-effort — a card without it is still useful
+        outcome = None
+
+    blocks, fallback = build_memory_card(decision.query, top, outcome)
+    return {"blocks": blocks, "text": fallback}

@@ -1,101 +1,59 @@
-def build_app_home_view(
-    install_url: str | None = None, is_connected: bool = False
-) -> dict:
-    """Build the App Home Block Kit view.
+def build_app_home_view(install_url: str | None = None, is_connected: bool = False) -> dict:
+    """Build Déjà's App Home tab — what it is, how it works, and the privacy promise.
 
-    Args:
-        install_url: OAuth install URL. When provided, the user has not
-            connected and will see a link to install.
-        is_connected: When ``True``, the user is connected and the MCP
-            status section shows as connected.
+    (Args kept for compatibility with the scaffold's app_home_opened handler; unused here.)
     """
     blocks = [
         {
             "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": "Hey there :wave: I'm your Slack assistant.",
-            },
+            "text": {"type": "plain_text", "text": "⏳ Déjà — your team's memory", "emoji": True},
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    "I'm here to help! You can ask me questions, have a conversation, "
-                    "or ask me to do things in Slack.\n\n"
-                    "Send me a *direct message* or *mention me in a channel* to get started."
+                    "When a decision, claim, or proposal comes up in a channel, I quietly surface "
+                    "the *concrete past thread* your team already had on it — so nobody re-litigates "
+                    "what was already discussed and decided."
                 ),
             },
         },
         {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "*How it works*\n"
+                    "1️⃣  You post something like _“should we migrate to Temporal?”_\n"
+                    "2️⃣  I search your history and check whether it was discussed before\n"
+                    "3️⃣  If it was, I drop a *memory card* in-thread — the message, the decision, "
+                    "and a link to the source"
+                ),
+            },
+        },
+        {
+            "type": "context",
+            "elements": [{
+                "type": "mrkdwn",
+                "text": "Add me to a channel and I start listening. Mention me (`@Déjà …`) to ask directly.",
+            }],
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    ":lock: *Privacy*\nI only ever search channels *you* can already access — the "
+                    "search runs on your behalf, permission-aware. I never widen your reach."
+                ),
+            },
+        },
+        {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": "powered by Legibright"}],
+        },
     ]
-
-    if is_connected:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "\U0001f7e2 *Slack MCP Server is connected.*",
-                },
-            }
-        )
-        blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "The agent can search messages, read channels, and more.",
-                    }
-                ],
-            }
-        )
-    elif install_url:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"\U0001f534 *Slack MCP Server is disconnected.* <{install_url}|Connect the Slack MCP Server.>",
-                },
-            }
-        )
-        blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "The Slack MCP Server enables the agent to search messages, read channels, and more.",
-                    }
-                ],
-            }
-        )
-    else:
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "\U0001f534 *Slack MCP Server is disconnected.* <https://github.com/slack-samples/bolt-python-starter-agent/blob/main/claude-agent-sdk/README.md#slack-mcp-server|Learn how to enable the Slack MCP Server.>",
-                },
-            }
-        )
-        blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "The Slack MCP Server enables the agent to search messages, read channels, and more.",
-                    }
-                ],
-            }
-        )
-
-    return {
-        "type": "home",
-        "blocks": blocks,
-    }
+    return {"type": "home", "blocks": blocks}

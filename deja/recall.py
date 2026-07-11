@@ -29,6 +29,15 @@ RTS_METHOD = "assistant.search.context"
 DEFAULT_CHANNEL_TYPES = ["public_channel", "private_channel", "mpim", "im"]
 _WORD = re.compile(r"[a-z0-9]{3,}")
 
+# Déjà must never recall its OWN memory cards (they'd pollute results and loop). Its cards
+# always carry these phrases, so we drop any hit that looks like one, whoever posted it.
+_DEJA_FINGERPRINTS = ("your team already discussed", "powered by legibright", "déjà vu")
+
+
+def _is_deja_card(snippet: str) -> bool:
+    s = snippet.lower()
+    return any(fp in s for fp in _DEJA_FINGERPRINTS)
+
 
 def _resolve_token(explicit: str | None) -> str:
     token = explicit or os.environ.get("SLACK_USER_TOKEN")
@@ -76,10 +85,17 @@ def _score(query: str, snippet: str) -> float:
 
 def _to_hit(result: dict, query: str) -> Hit:
     snippet = _first(result, "content", "text", "snippet")
+    try:
+        reply_count = int(result.get("reply_count") or 0)
+    except (TypeError, ValueError):
+        reply_count = 0
     return Hit(
+        reply_count=reply_count,
         permalink=_first(result, "permalink", "link"),
         channel=_first(result, "channel_name", "channel", default=_first(result, "channel_id")),
+        channel_id=_first(result, "channel_id"),
         author=_first(result, "author_name", "username", default=_first(result, "author_user_id", "user")),
+        author_id=_first(result, "author_user_id", "user"),
         ts=_first(result, "message_ts", "ts", "thread_ts"),
         snippet=snippet,
         score=_score(query, snippet),
@@ -92,8 +108,13 @@ def recall(
     token: str | None = None,
     limit: int = 5,
     channel_types: list[str] | None = None,
+    exclude_ts: str | None = None,
 ) -> list[Hit]:
-    """Return the top-`limit` past messages most relevant to `query`, deterministically ordered."""
+    """Return the top-`limit` past messages most relevant to `query`, deterministically ordered.
+
+    `exclude_ts` drops the triggering message itself (so a fresh "should we do X?" doesn't recall
+    *itself*). Déjà's own cards and empty-content hits are always filtered out.
+    """
     client = WebClient(token=_resolve_token(token))
     try:
         resp = client.api_call(
@@ -116,9 +137,14 @@ def recall(
         ) from e
 
     hits = [_to_hit(r, query) for r in _extract_results(resp.data)]
-    # Stable, deterministic ranking: sort by secondary key first, then primary (Python sort is stable).
-    hits.sort(key=lambda h: h.ts, reverse=True)      # tie-break: newest first
-    hits.sort(key=lambda h: h.score, reverse=True)   # primary: highest query overlap first
+    hits = [
+        h for h in hits
+        if h.snippet.strip() and not _is_deja_card(h.snippet) and h.ts != exclude_ts
+    ]
+    # Deterministic ranking (Python sort is stable; apply least-significant key first):
+    hits.sort(key=lambda h: h.ts, reverse=True)            # 3rd: newest
+    hits.sort(key=lambda h: h.reply_count, reverse=True)   # 2nd: a discussed thread beats a lone line
+    hits.sort(key=lambda h: h.score, reverse=True)         # 1st: query overlap
     return hits[:limit]
 
 
