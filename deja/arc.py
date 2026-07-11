@@ -162,6 +162,66 @@ def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
     )
 
 
+def as_record(arc: DecisionArc | None) -> dict:
+    """The decision record as a plain dict — the structured contract an external agent consumes."""
+    if arc is None:
+        return {
+            "found": False,
+            "confidence": "none",
+            "times_discussed": 0,
+            "timeline": [],
+        }
+    return {
+        "found": True,
+        "topic": arc.topic,
+        "standing_decision": arc.standing_decision,
+        "owner": arc.owner,
+        "decided_at": arc.decided_at,
+        "times_discussed": arc.times_discussed,
+        "confidence": arc.confidence,
+        "inconclusive": arc.inconclusive,
+        "timeline": [
+            {
+                "date": e.date,
+                "channel": e.channel,
+                "author": e.author,
+                "summary": e.summary,
+                "permalink": e.permalink,
+                "is_decision": e.is_decision,
+            }
+            for e in arc.timeline
+        ],
+        "sources": list(arc.sources),
+    }
+
+
+def render_record(arc: DecisionArc | None) -> str:
+    """Human/LLM-readable rendering of the decision record — leads with the standing decision (or
+    INCONCLUSIVE), then the sourced timeline. This is what the Slackbot's LLM relays."""
+    if arc is None:
+        return "No prior discussion found."
+    lines: list[str] = []
+    if arc.inconclusive:
+        lines.append(
+            f"⚠️ INCONCLUSIVE — this was discussed {arc.times_discussed}× but no clear decision "
+            "was recorded, so I won't claim one."
+        )
+    else:
+        who = f" (owner: {arc.owner}, {arc.decided_at})" if arc.owner else ""
+        lines.append(f"Standing decision{who}: {arc.standing_decision}")
+        if arc.is_recurring:
+            lines.append(f"This has come up {arc.times_discussed}× before.")
+    lines.append("")
+    lines.append("Timeline:")
+    for e in arc.timeline:
+        lead = "→ DECISION: " if e.is_decision else "• "
+        date = f"{e.date} " if e.date else ""
+        lines.append(f"  {date}#{e.channel} ({e.author}) {lead}{e.summary}")
+        if e.permalink:
+            lines.append(f"    {e.permalink}")
+    return "\n".join(lines)
+
+
 async def recall_arc(
     query: str, *, limit: int = 8, exclude_ts: str | None = None
 ) -> DecisionArc | None:

@@ -1,6 +1,6 @@
 """Hermetic tests for the decision-arc synthesis (deja.arc.build_arc) — pure, no Slack."""
 
-from deja.arc import build_arc
+from deja.arc import as_record, build_arc, render_record
 
 
 def _m(ts, decision="", source="proposal", author="alex", channel="eng"):
@@ -53,3 +53,44 @@ def test_single_thread_degrades_cleanly():
     assert not arc.is_recurring
     assert "auth0" in arc.standing_decision.lower()
     assert arc.confidence == "high"
+
+
+def test_as_record_shape():
+    arc = build_arc(
+        "temporal",
+        [
+            _m("1", source="proposing Temporal", author="maya"),
+            _m("2", decision="rolling back to Redis", author="maya"),
+        ],
+    )
+    rec = as_record(arc)
+    assert rec["found"] and rec["times_discussed"] == 2 and rec["confidence"] == "high"
+    assert "rolling back" in rec["standing_decision"].lower() and rec["owner"] == "maya"
+    assert len(rec["timeline"]) == 2 and rec["timeline"][1]["is_decision"]
+    assert as_record(None) == {
+        "found": False,
+        "confidence": "none",
+        "times_discussed": 0,
+        "timeline": [],
+    }
+
+
+def test_render_record_leads_with_standing_then_timeline():
+    arc = build_arc(
+        "temporal",
+        [
+            _m("1", source="proposing Temporal", author="maya"),
+            _m("2", decision="rolling back to Redis", author="maya"),
+        ],
+    )
+    text = render_record(arc)
+    assert text.index("Standing decision") < text.index("Timeline")
+    assert "maya" in text and "rolling back" in text.lower()
+
+
+def test_render_record_inconclusive_never_fakes_a_decision():
+    arc = build_arc(
+        "x", [_m("1", source="should we use X?"), _m("2", source="still unsure")]
+    )
+    text = render_record(arc)
+    assert "INCONCLUSIVE" in text and "Standing decision" not in text

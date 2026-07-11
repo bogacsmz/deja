@@ -26,6 +26,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from deja.arc import build_arc, render_record
 from deja.memory import recall_memories
 
 _log = logging.getLogger(__name__)
@@ -40,18 +41,14 @@ mcp_server = FastMCP(
 )
 
 
-def render_memory(result: dict) -> str:
-    """A readable rendering of a recall result for the calling agent (Slackbot's LLM to relay)."""
+def render_memory(query: str, result: dict) -> str:
+    """A readable rendering for the calling agent (Slackbot's LLM to relay). Synthesizes the
+    recalled threads into a decision record (standing decision · owner · timeline · sources), or
+    says INCONCLUSIVE when there's discussion but no clear decision — never a fake one."""
     memories = result.get("memories") or []
     if not memories:
         return result.get("summary", "No prior discussion found.")
-    lines = [result.get("summary", ""), ""]
-    for m in memories:
-        lines.append(f"• #{m['channel']}: {m['source_message']}")
-        if m.get("what_happened_next"):
-            lines.append(f"    → what happened next: {m['what_happened_next']}")
-        lines.append(f"    {m['permalink']}")
-    return "\n".join(line for line in lines if line is not None)
+    return render_record(build_arc(query, memories))
 
 
 @mcp_server.tool(
@@ -79,9 +76,11 @@ async def recall_memory(
         slack.get("team_id"),
         query,
     )
-    result = await recall_memories(query, channel=channel, limit=limit)
+    # Gather a few extra threads so the arc has material to synthesize (the caller's `limit` is a
+    # floor on distinct threads, not a cap on the record).
+    result = await recall_memories(query, channel=channel, limit=max(limit, 6))
     return CallToolResult(
-        content=[TextContent(type="text", text=render_memory(result))]
+        content=[TextContent(type="text", text=render_memory(query, result))]
     )
 
 

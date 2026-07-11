@@ -23,6 +23,7 @@ load_dotenv(
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
+from deja.arc import as_record, build_arc  # noqa: E402
 from deja.memory import recall_memories  # noqa: E402
 
 mcp = FastMCP("deja")
@@ -43,10 +44,14 @@ async def recall_memory(query: str, channel: str | None = None, limit: int = 3) 
         limit: Maximum number of memories to return (default 3).
 
     Returns:
-        {summary, memories:[{source_message, what_happened_next, channel, author, ts, permalink,
-        score}], searched}. Empty/error cases return memories: [] with an explanatory summary.
+        {summary, memories:[…], searched, record}. `record` is the synthesized decision record —
+        {found, standing_decision, owner, decided_at, times_discussed, confidence|inconclusive,
+        timeline[], sources[]} — or found: false when nothing was recalled. Empty/error cases
+        return memories: [] with an explanatory summary.
     """
-    return await recall_memories(query, channel=channel, limit=limit)
+    result = await recall_memories(query, channel=channel, limit=max(limit, 6))
+    result["record"] = as_record(build_arc(query, result.get("memories", [])))
+    return result
 
 
 def main() -> None:
