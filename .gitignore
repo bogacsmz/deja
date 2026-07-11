@@ -50,3 +50,4 @@ pip
 .pytest_cache/
 .tox
 tmp.txt
+deja_decisions.json

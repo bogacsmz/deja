@@ -30,13 +30,27 @@ python scripts/verify_all.py   # the cross-phase gate — one green table (below
 | 3 · Judge→Recall→Reply | LLM trigger (Max subscription), end-to-end | `pipeline PASS`, `trigger 4/4` |
 | 4 · Block Kit card | Interactive card + App Home + privacy | `card builders`, `App Home view` |
 | 5 · MCP | `recall_memory` tool + real stdio client | `recall_memory unit`, `MCP stdio` |
-| 6 · Seed | Realistic 8-thread / 5-channel workspace | `seed integrity`, `seed dry-run` |
+| 6 · Seed | Realistic multi-author workspace + decision arcs | `seed integrity`, `seed dry-run` |
+| 6 · Decision arc | Timeline + standing decision + owner + INCONCLUSIVE + save→Canvas | `arc synthesis`, `arc card`, `decision store` |
 | 7 · Docs | Architecture · submission · demo · review | — |
 
 **One command proves it all:** `python scripts/verify_all.py` → a phase-by-phase ✅ table
 (`--no-live` for the hermetic subset in CI). See [`docs/architecture.md`](docs/architecture.md) ·
 [`docs/SUBMISSION.md`](docs/SUBMISSION.md) · [`docs/DEMO.md`](docs/DEMO.md) ·
 [`docs/PHASE-REVIEW.md`](docs/PHASE-REVIEW.md) · [`docs/HARDENING.md`](docs/HARDENING.md).
+
+## Does the arc beat search? (benchmark)
+
+On a **held-out set we never tuned on**, single-hit search surfaces the standing decision **1/6**
+times and invents one on noise **1/4** times. **Déjà → 5/6, never invents one (0/4).** (Dev set:
+6/6 recurring, 0/5 false decisions.)
+
+> **We surface this, we don't hide it:** Slack's Real-Time Search is rate-limited to ~1 call every
+> few minutes (measured `Retry-After: 288s`), so a 100+-query *live* benchmark isn't possible. The
+> benchmark runs the **real engine** through a **reproducible, RTS-free harness** (a local mirror
+> injected via `recall_fn`/`thread_fn`), **calibrated to the live RTS dev results** (6/6, 7/7, 0/5),
+> which it reproduces exactly. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · run it with
+> `python benchmarks/run.py --md`.
 
 ## MCP — query Déjà's memory from any agent
 ```bash

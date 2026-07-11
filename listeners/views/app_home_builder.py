@@ -1,9 +1,65 @@
+def _digest_blocks() -> list[dict]:
+    """The saved-decision digest: recent decisions + how many were circled back this week."""
+    from deja.store import count_saved_since, list_decisions
+
+    decisions = list_decisions()
+    this_week = count_saved_since(7)
+    blocks: list[dict] = [
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": ":card_index_dividers: *Saved decisions*",
+            },
+        },
+    ]
+    if not decisions:
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "Nothing saved yet — hit *💾 Save decision* on a Déjà card to build the log.",
+                    }
+                ],
+            }
+        )
+        return blocks
+    blocks.append(
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f":repeat: *{this_week}* decision(s) circled back this week",
+                }
+            ],
+        }
+    )
+    for d in decisions[:5]:
+        owner = f" · _{d['owner']}_" if d.get("owner") else ""
+        when = f" · {d['at']}" if d.get("at") else ""
+        link = f"  <{d['url']}|↗>" if d.get("url") else ""
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":white_check_mark: *{d.get('topic', 'Decision')}*{owner}{when}\n{d.get('decision', '')}{link}",
+                },
+            }
+        )
+    return blocks
+
+
 def build_app_home_view(
     install_url: str | None = None, is_connected: bool = False
 ) -> dict:
-    """Build Déjà's App Home tab — what it is, how it works, and the privacy promise.
+    """Build Déjà's App Home tab — what it is, the saved-decision digest, how it works, privacy.
 
-    (Args kept for compatibility with the scaffold's app_home_opened handler; unused here.)
+    (install/connected args kept for compatibility with the scaffold's app_home_opened handler.)
     """
     blocks = [
         {
@@ -25,6 +81,7 @@ def build_app_home_view(
                 ),
             },
         },
+        *_digest_blocks(),
         {"type": "divider"},
         {
             "type": "section",

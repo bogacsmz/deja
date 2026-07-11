@@ -1,3 +1,4 @@
+import asyncio
 import re
 from logging import Logger
 
@@ -17,22 +18,45 @@ async def handle_app_mentioned(
     logger: Logger,
     say: AsyncSay,
 ):
-    """Explicit trigger: @Déjà <something> -> surface the past thread as a memory card."""
+    """Explicit trigger: @Déjà <something> -> surface the past thread as a memory card.
+
+    Follows Slack's agent-design guidance: a live status message ('Searching your workspace…' ->
+    'Found N threads…' -> 'Reconstructing the decision…') that is then replaced in place by the
+    result — so the work is visible and the user is never left staring at nothing."""
     thread_ts = event.get("thread_ts") or event["ts"]
     text = _MENTION.sub("", event.get("text", "")).strip()
+    if not text:
+        await say(
+            text=":hourglass_flowing_sand: Ask me about a decision and I'll check.",
+            thread_ts=thread_ts,
+        )
+        return
+
+    status = await say(text=":mag: _Searching your workspace…_", thread_ts=thread_ts)
+    ch, ts = status["channel"], status["ts"]
+
+    async def on_status(msg: str) -> None:
+        await client.chat_update(channel=ch, ts=ts, text=msg)
+        await asyncio.sleep(
+            0.4
+        )  # let each stage register in the thread before the next
+
     try:
-        card = (
-            await recall_card(text, client, exclude_ts=event.get("ts"))
-            if text
-            else None
+        card = await recall_card(
+            text, client, exclude_ts=event.get("ts"), on_status=on_status
         )
         if card:
-            await say(blocks=card["blocks"], text=card["text"], thread_ts=thread_ts)
+            await client.chat_update(
+                channel=ch, ts=ts, blocks=card["blocks"], text=card["text"]
+            )
         else:
-            await say(
+            await client.chat_update(
+                channel=ch,
+                ts=ts,
                 text=":hourglass_flowing_sand: I couldn't find an earlier thread on that yet.",
-                thread_ts=thread_ts,
             )
     except Exception as e:
         logger.exception(f"Failed to handle app mention: {e}")
-        await say(text=f":warning: Something went wrong! ({e})", thread_ts=thread_ts)
+        await client.chat_update(
+            channel=ch, ts=ts, text=f":warning: Something went wrong! ({e})"
+        )

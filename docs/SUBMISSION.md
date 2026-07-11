@@ -23,6 +23,12 @@ past thread** the team already had on it — including **what was decided** — 
 It's **non-disruptive** (silent unless it finds a real match), **permission-aware** (only your
 channels), and its memory is also a standalone **MCP tool** any external agent can call.
 
+Beyond a single thread, Déjà reconstructs the **decision arc**: when a topic was debated repeatedly
+across months, it stitches the threads into a timeline with the **standing decision**, its **owner**,
+how many times it's come up, and every source link — or says **INCONCLUSIVE** when the evidence
+doesn't support a decision (it never invents one). You can **💾 Save** a decision to a canonical log
+that feeds a live Slack **Canvas** and the App Home digest.
+
 ## The two required technologies
 
 1. **Real-Time Search (RTS)** — `deja/recall.py` calls `assistant.search.context` with the user's
@@ -61,10 +67,30 @@ python scripts/verify_all.py      # the cross-phase gate (see below)
 | 3 · Judge→Recall→Reply | LLM trigger on the Max subscription, end-to-end | `end-to-end pipeline PASS`, `trigger-judgment 4/4 (subscription)` |
 | 4 · Block Kit card | Interactive card + App Home + privacy | `memory-card builders`, `App Home view` |
 | 5 · MCP | `recall_memory` tool, real external client | `recall_memory logic (unit)`, `real MCP client over stdio` |
-| 6 · Seed | Realistic 8-thread / 5-channel workspace | `seed-data integrity`, `realistic seed (unit)`, `seed dry-run` |
+| 6 · Seed | Realistic multi-author workspace + decision arcs | `seed-data integrity`, `realistic seed (unit)`, `seed dry-run` |
+| 6 · Decision arc | Timeline + standing decision + owner + INCONCLUSIVE + save→Canvas | `arc synthesis`, `conflict/staleness`, `arc card`, `decision store` (hermetic) |
 
 Plus `pytest` (hermetic unit + integration) — see [`../README.md`](../README.md) and
 [`PHASE-REVIEW.md`](PHASE-REVIEW.md).
+
+## Benchmark — the arc beats single-hit search
+
+Déjà's claim is that reconstructing the **decision arc** beats returning the single most relevant
+message. We measured it on a labelled set (recurring decisions, one-off decisions, and noise),
+running the *real* synthesis engine.
+
+**On a held-out set we never tuned on:** single-hit search surfaces the standing decision **1/6**
+times and invents a decision on noise **1/4** times. **Déjà → 5/6, and never invents one (0/4).** On
+the development set Déjà reaches **6/6** recurring decisions and **0/5** false decisions — held-out
+tracks dev, so it generalizes rather than overfitting.
+
+> **We surface this, we don't hide it:** Slack's Real-Time Search endpoint is rate-limited to roughly
+> **one call every few minutes** (measured `Retry-After: 288s`), so a 100+-query *live* benchmark is
+> not possible. We therefore run the benchmark through a **reproducible, RTS-free harness** — the real
+> engine (`recall_memories`/`recall_arc`/`build_arc`) over a local mirror of the workspace, injected
+> via `recall_fn`/`thread_fn` — and **calibrated it against the live RTS results** on the dev set
+> (recurring 6/6, single 7/7, negatives 0/5), which it reproduces exactly. Full method + honest limits
+> in [`BENCHMARK.md`](BENCHMARK.md); one command: `python benchmarks/run.py --md`.
 
 ## Privacy
 

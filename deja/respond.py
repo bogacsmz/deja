@@ -14,9 +14,10 @@ import asyncio
 import logging
 import re
 
-from deja.card import build_memory_card
+from deja.arc import recall_arc
+from deja.card import build_arc_card
+from deja.conflict import detect_conflict
 from deja.recall import recall
-from deja.thread import fetch_decision
 from deja.trigger import judge
 
 _log = logging.getLogger(__name__)
@@ -49,30 +50,31 @@ async def recall_reply(
 
 
 async def recall_card(
-    text: str, client, *, limit: int = 3, exclude_ts: str | None = None
+    text: str, client, *, limit: int = 3, exclude_ts: str | None = None, on_status=None
 ) -> dict | None:
-    """Full Phase-4 pipeline: judge -> recall -> fetch the decision -> build the Block Kit card.
+    """Full pipeline: judge -> reconstruct the decision ARC -> build the Block Kit card.
 
     Returns {"blocks": [...], "text": fallback} or None when there's nothing worth surfacing.
-    `client` is a Slack (Async)WebClient used to fetch the thread's replies.
-    """
+    Déjà stays silent unless it found either a standing decision or a recurring discussion — a lone
+    proposal with no outcome isn't worth interrupting for. `client` is accepted for signature
+    compatibility (the arc engine fetches threads itself). `on_status(str)` (optional async) is
+    called with progress lines for an agent-design status indicator."""
+
+    async def _status(msg: str) -> None:
+        if on_status:
+            await on_status(msg)
+
+    await _status(":mag: _Searching your workspace…_")
     decision = await judge(text)
     if not decision.should_recall or not decision.query:
         return None
 
-    hits = await asyncio.to_thread(
-        recall, decision.query, limit=limit, exclude_ts=exclude_ts
-    )
-    if not hits:
-        return None
-    top = hits[0]
+    arc = await recall_arc(decision.query, exclude_ts=exclude_ts)
+    if arc is None or (arc.inconclusive and not arc.is_recurring):
+        return None  # nothing found, or just a single unresolved proposal — stay quiet
 
-    outcome = None
-    try:
-        outcome = await fetch_decision(client, top.channel_id, top.ts)
-    except Exception as e:  # noqa: BLE001 — enrichment is best-effort; a card without it still helps
-        _log.debug("recall_card: decision enrichment failed for %s: %s", top.ts, e)
-        outcome = None
-
-    blocks, fallback = build_memory_card(decision.query, top, outcome)
+    await _status(f":books: _Found {arc.times_discussed} related thread(s)…_")
+    await _status(":jigsaw: _Reconstructing the decision…_")
+    warning = detect_conflict(text, arc)
+    blocks, fallback = build_arc_card(decision.query, arc, warning)
     return {"blocks": blocks, "text": fallback}
