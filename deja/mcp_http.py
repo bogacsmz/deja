@@ -17,6 +17,7 @@ import os
 
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.session import ServerSession
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from slack_sdk.signature import SignatureVerifier
 from starlette.applications import Starlette
@@ -29,7 +30,14 @@ from deja.memory import recall_memories
 
 _log = logging.getLogger(__name__)
 
-mcp_server = FastMCP("Déjà", stateless_http=True, json_response=True)
+# DNS-rebinding host check is off: the SlackSignatureMiddleware below is the real auth boundary,
+# and the check otherwise rejects the ngrok host Slack reaches us through.
+mcp_server = FastMCP(
+    "Déjà",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+)
 
 
 def render_memory(result: dict) -> str:
