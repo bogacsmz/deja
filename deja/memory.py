@@ -13,7 +13,7 @@ import re
 from slack_sdk.web.async_client import AsyncWebClient
 
 from deja.recall import recall
-from deja.thread import is_thread_alive, pick_decision
+from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
 _MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
 
@@ -59,8 +59,7 @@ async def recall_memories(query: str, channel: str | None = None, limit: int = 3
     for h in hits:
         decision = ""
         try:
-            resp = await client.conversations_replies(channel=h.channel_id, ts=h.ts, limit=50)
-            msgs = resp.get("messages", [])
+            msgs = await fetch_thread_messages(client, h.channel_id, h.ts)  # reply-aware
             if not is_thread_alive(msgs):
                 continue  # stale ghost: RTS returned a message that has since been deleted
             found = pick_decision(msgs)

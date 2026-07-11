@@ -67,6 +67,27 @@ def test_shape_and_decision(monkeypatch):
                       "permalink", "score"}
 
 
+def test_reply_hit_resolves_to_thread_root(monkeypatch):
+    """A reply-level hit re-fetches from thread_ts so it still enriches with the decision."""
+    monkeypatch.setenv("SLACK_USER_TOKEN", "xoxp-test")
+    reply_only = {"messages": [
+        {"ts": "2.0", "thread_ts": "1.0", "text": "we're rolling back Temporal", "user": "U2"},
+    ]}
+    full_thread = {"messages": [
+        {"ts": "1.0", "text": "migrate to Temporal?", "user": "U1"},
+        {"ts": "2.0", "thread_ts": "1.0", "text": "we're rolling back Temporal", "user": "U2"},
+    ]}
+    client = MagicMock()
+    client.conversations_replies = AsyncMock(side_effect=[reply_only, full_thread])
+    with patch.object(memory, "recall", return_value=[_hit(ts="2.0")]), \
+         patch.object(memory, "AsyncWebClient", return_value=client):
+        r = asyncio.run(memory.recall_memories("temporal"))
+
+    assert len(r["memories"]) == 1
+    assert "rolling back" in r["memories"][0]["what_happened_next"].lower()
+    assert client.conversations_replies.await_count == 2  # reply-ts, then the resolved root
+
+
 def test_ghost_dropped(monkeypatch):
     """A hit whose parent was deleted (RTS lag) is dropped, not returned."""
     monkeypatch.setenv("SLACK_USER_TOKEN", "xoxp-test")

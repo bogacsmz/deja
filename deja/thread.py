@@ -57,9 +57,25 @@ def pick_decision(messages: list[dict]) -> tuple[str, str] | None:
     return text, best.get("user", "")
 
 
+async def fetch_thread_messages(client, channel_id: str, ts: str) -> list[dict]:
+    """Fetch a thread's messages. If `ts` is a reply, resolve to the thread root first.
+
+    RTS can return a reply (not the parent) as a hit, and `conversations.replies` on a reply's ts
+    returns only that reply. The reply carries `thread_ts` (the root), so we re-fetch from it — that
+    way reply-level hits still get the full thread (parent + decision)."""
+    resp = await client.conversations_replies(channel=channel_id, ts=ts, limit=50)
+    msgs = resp.get("messages", [])
+    if msgs:
+        first = msgs[0]
+        root = first.get("thread_ts") or first.get("ts")
+        if root and root != first.get("ts"):  # `ts` was a reply — re-fetch from the thread root
+            resp = await client.conversations_replies(channel=channel_id, ts=root, limit=50)
+            msgs = resp.get("messages", [])
+    return msgs
+
+
 async def fetch_decision(client, channel_id: str, thread_ts: str) -> tuple[str, str] | None:
     """Convenience: fetch the thread and pick its decision. Best-effort — errors yield None."""
     if not channel_id or not thread_ts:
         return None
-    resp = await client.conversations_replies(channel=channel_id, ts=thread_ts, limit=50)
-    return pick_decision(resp.get("messages", []))
+    return pick_decision(await fetch_thread_messages(client, channel_id, thread_ts))
