@@ -1,17 +1,26 @@
 #!/usr/bin/env python3
-"""Seed a minimal, reproducible demo workspace for Déjà — Phase 2.
+"""Seed a realistic demo workspace for Déjà — Phase 6.
 
-Posts ONE concrete "forgotten decision" thread into a channel (default #eng): the team tried
-migrating the job queue to Temporal months ago and rolled it back for a specific reason. Later,
-`recall("should we migrate the job queue to Temporal")` must resurface it.
+Posts a small but believable set of *forgotten decision* threads (see `seed_data.SEEDS`) across
+the channels a real product team would use (#eng, #ops, #product, #design, #general). Later,
+`recall_memory("should we migrate the job queue to Temporal?")`, `"postgres or mongo?"`,
+`"usage-based pricing?"`, etc. each resurface the concrete past thread.
 
-Idempotent: a hidden marker in the parent message means re-runs detect the existing seed and
-skip, so the demo is repeatable. Minimal on purpose — a fuller, realistic workspace is Phase 6.
+Idempotent per thread: each thread carries a hidden marker in its parent message. Re-runs detect
+already-seeded threads and skip them, so the seed is repeatable and additive — new threads get
+posted, existing ones are left alone.
 
-Auth: uses the USER token (SLACK_USER_TOKEN, xoxp-…) so messages appear from you (a human) and
-no bot channel-invite is needed. You must already be a member of the target channel.
+Missing channels are skipped with a warning (not a hard failure), so a partially-created
+workspace still gets everything it can.
 
-Prereqs: create the channel (default #eng) in Deja, then:  python scripts/seed_deja.py
+Auth: uses the USER token (SLACK_USER_TOKEN, xoxp-…) so messages appear from you (a human) and no
+bot channel-invite is needed. You must already be a member of each target channel.
+
+Usage:
+    python scripts/seed_deja.py            # post missing threads
+    python scripts/seed_deja.py --dry-run  # show the plan, post nothing (no Slack writes)
+
+Prereqs: create the channels in the Deja workspace and join them first.
 """
 from __future__ import annotations
 
@@ -22,46 +31,110 @@ from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+try:  # works when run as `python scripts/seed_deja.py` (scripts/ is on sys.path[0])
+    from seed_data import SEEDS, SeedThread
+except ModuleNotFoundError:  # works when imported as scripts.seed_data (e.g. from repo root)
+    from scripts.seed_data import SEEDS, SeedThread
+
 load_dotenv(".env", override=False)
 
-CHANNEL_NAME = os.environ.get("DEJA_SEED_CHANNEL", "eng").lstrip("#")
 # Enterprise Grid: org-level user tokens must scope conversations.list to a workspace (team).
 TEAM_ID = os.environ.get("DEJA_TEAM_ID", "T0BGF1BJYUT")  # Deja workspace
-MARKER = "‹deja-seed:eng-temporal-v1›"  # ‹deja-seed:eng-temporal-v1›
-
-PARENT = (
-    "Kicking off the migration from our Redis-based job queue to Temporal next sprint — the "
-    "durability + retries story is much nicer. Any objections? " + MARKER
-)
-REPLIES = [
-    "+1, the Temporal UI for debugging stuck workflows alone is worth it.",
-    "Update after 3 weeks: we're ROLLING BACK the Temporal migration. Two blockers — (1) duplicate "
-    "task execution under a network partition, and (2) the operational overhead of running the "
-    "Temporal cluster isn't worth it at our scale. Sticking with Redis + a thin idempotency wrapper.",
-    "Noted. Documenting the decision so nobody relitigates the Temporal move in six months.",
-]
 
 
-def _channel_id(client: WebClient, name: str) -> str | None:
+def resolve_channel_ids(client: WebClient, team_id: str = TEAM_ID) -> dict[str, str]:
+    """Map channel name -> id for every channel visible to the user token (one paginated pass)."""
+    ids: dict[str, str] = {}
     cursor = None
     while True:
         resp = client.conversations_list(
-            types="public_channel,private_channel", limit=200, cursor=cursor, team_id=TEAM_ID
+            types="public_channel,private_channel", limit=200, cursor=cursor, team_id=team_id
         )
         for ch in resp["channels"]:
-            if ch.get("name") == name:
-                return ch["id"]
+            name = ch.get("name")
+            if name and name not in ids:
+                ids[name] = ch["id"]
         cursor = (resp.get("response_metadata") or {}).get("next_cursor")
         if not cursor:
-            return None
+            return ids
 
 
-def _already_seeded(client: WebClient, channel_id: str) -> bool:
+def _already_seeded(client: WebClient, channel_id: str, marker: str) -> bool:
     resp = client.conversations_history(channel=channel_id, limit=200)
-    return any(MARKER in (m.get("text") or "") for m in resp["messages"])
+    return any(marker in (m.get("text") or "") for m in resp["messages"])
 
 
-def main() -> int:
+def post_thread(client: WebClient, channel_id: str, thread: SeedThread) -> str:
+    """Post a thread's parent (with marker) + replies. Returns the parent permalink."""
+    parent = client.chat_postMessage(
+        channel=channel_id, text=f"{thread.parent} {thread.marker}"
+    )
+    thread_ts = parent["ts"]
+    for reply in thread.replies:
+        client.chat_postMessage(channel=channel_id, text=reply, thread_ts=thread_ts)
+    return client.chat_getPermalink(channel=channel_id, message_ts=thread_ts)["permalink"]
+
+
+def seed_workspace(
+    client: WebClient,
+    seeds: tuple[SeedThread, ...] = SEEDS,
+    *,
+    dry_run: bool = False,
+    team_id: str = TEAM_ID,
+) -> list[tuple[str, SeedThread, str | None]]:
+    """Seed all threads idempotently.
+
+    Returns a list of (status, thread, permalink) where status is one of:
+    'posted' | 'would-post' | 'skipped' (already seeded) | 'missing' (channel not found).
+    Pure orchestration — all Slack I/O goes through the injected client, so tests can mock it.
+    """
+    channel_ids = resolve_channel_ids(client, team_id)
+    results: list[tuple[str, SeedThread, str | None]] = []
+
+    for thread in seeds:
+        channel_id = channel_ids.get(thread.channel)
+        if channel_id is None:
+            results.append(("missing", thread, None))
+            continue
+        if _already_seeded(client, channel_id, thread.marker):
+            results.append(("skipped", thread, None))
+            continue
+        if dry_run:
+            results.append(("would-post", thread, None))
+            continue
+        permalink = post_thread(client, channel_id, thread)
+        results.append(("posted", thread, permalink))
+
+    return results
+
+
+_ICON = {"posted": "✅", "would-post": "📝", "skipped": "⏭️ ", "missing": "⚠️ "}
+
+
+def _print_summary(results: list[tuple[str, SeedThread, str | None]], dry_run: bool) -> None:
+    header = "[seed] DRY RUN — nothing was posted" if dry_run else "[seed] done"
+    print(header)
+    counts: dict[str, int] = {}
+    for status, thread, permalink in results:
+        counts[status] = counts.get(status, 0) + 1
+        line = f"  {_ICON.get(status, '  ')} {status:<10} #{thread.channel:<8} {thread.topic}"
+        if permalink:
+            line += f"\n       → {permalink}"
+        print(line)
+    tally = ", ".join(f"{n} {s}" for s, n in sorted(counts.items()))
+    print(f"[seed] {tally}")
+    if any(s == "missing" for s, _, _ in results):
+        print("[seed] note: 'missing' channels don't exist / you're not a member — create+join "
+              "them in Deja, then re-run (idempotent).")
+    if any(s == "posted" for s, _, _ in results):
+        print("[seed] note: RTS may take a short while to index new messages before recall finds "
+              "them.")
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    dry_run = "--dry-run" in argv or os.environ.get("DEJA_SEED_DRY_RUN") == "1"
+
     token = os.environ.get("SLACK_USER_TOKEN")
     if not token:
         print("ERROR: set SLACK_USER_TOKEN (xoxp-…) in .env first.", file=sys.stderr)
@@ -69,31 +142,15 @@ def main() -> int:
     client = WebClient(token=token)
 
     try:
-        channel_id = _channel_id(client, CHANNEL_NAME)
-        if not channel_id:
-            print(f"ERROR: channel #{CHANNEL_NAME} not found. Create it in Deja and join it, "
-                  f"or set DEJA_SEED_CHANNEL.", file=sys.stderr)
-            return 1
-
-        if _already_seeded(client, channel_id):
-            print(f"[seed] #{CHANNEL_NAME} already seeded (marker present) — skipping. Idempotent ✓")
-            return 0
-
-        parent = client.chat_postMessage(channel=channel_id, text=PARENT)
-        thread_ts = parent["ts"]
-        for reply in REPLIES:
-            client.chat_postMessage(channel=channel_id, text=reply, thread_ts=thread_ts)
-
-        link = client.chat_getPermalink(channel=channel_id, message_ts=thread_ts)["permalink"]
-        print(f"[seed] posted the forgotten Temporal thread → #{CHANNEL_NAME}")
-        print(f"[seed] thread permalink: {link}")
-        print("[seed] note: RTS may take a short while to index new messages before recall finds them.")
-        return 0
+        results = seed_workspace(client, dry_run=dry_run)
     except SlackApiError as e:
-        print(f"ERROR: {e.response.data.get('error')} — "
-              "check the user token has chat:write + channels:read + channels:history "
-              "and that you're a member of the channel.", file=sys.stderr)
+        print(f"ERROR: {e.response.data.get('error')} — check the user token has chat:write + "
+              "channels:read + channels:history and that you're a member of the channels.",
+              file=sys.stderr)
         return 1
+
+    _print_summary(results, dry_run)
+    return 0
 
 
 if __name__ == "__main__":
