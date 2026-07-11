@@ -79,18 +79,24 @@ Déjà's claim is that reconstructing the **decision arc** beats returning the s
 message. We measured it on a labelled set (recurring decisions, one-off decisions, and noise),
 running the *real* synthesis engine.
 
-**On a held-out set we never tuned on:** single-hit search surfaces the standing decision **1/6**
-times and invents a decision on noise **1/4** times. **Déjà → 5/6, and never invents one (0/4).** On
-the development set Déjà reaches **6/6** recurring decisions and **0/5** false decisions — held-out
-tracks dev, so it generalizes rather than overfitting.
+Measured on the **exact live pipeline** — every case runs `judge(sentence) → recall_arc`, the same
+LLM trigger and retrieval the live card uses.
 
-> **We surface this, we don't hide it:** Slack's Real-Time Search endpoint is rate-limited to roughly
-> **one call every few minutes** (measured `Retry-After: 288s`), so a 100+-query *live* benchmark is
-> not possible. We therefore run the benchmark through a **reproducible, RTS-free harness** — the real
-> engine (`recall_memories`/`recall_arc`/`build_arc`) over a local mirror of the workspace, injected
-> via `recall_fn`/`thread_fn` — and **calibrated it against the live RTS results** on the dev set
-> (recurring 6/6, single 7/7, negatives 0/5), which it reproduces exactly. Full method + honest limits
-> in [`BENCHMARK.md`](BENCHMARK.md); one command: `python benchmarks/run.py --md`.
+**On a held-out set we never tuned on:** single-hit search surfaces the standing decision **1/6**
+times and drifts onto an unrelated decision **1/4** times. **Déjà → 4/6, and never invents one
+(0/4).** On the development set Déjà reaches **6/6** recurring decisions, single **7/7**, and **0**
+false decisions.
+
+> **We surface this, we don't hide it (Legibright DNA):** Slack's Real-Time Search is rate-limited to
+> roughly **one call every few minutes** (measured `Retry-After: 288s`), so a 100+-query *live*
+> benchmark is not possible. We run the **real engine including the LLM judge** (cached) through a
+> reproducible RTS-free mirror, injected via `recall_fn`/`thread_fn`, and **calibrated to live**:
+> sentences that fail live (the judge emits 'continuous deployment', which RTS misses) route through
+> the same lexical expansion here and were verified to render the same result live. Held-out recurring
+> is **4/6, not higher**, because the live card path is **lexical-only** (no LLM in the hot path, light
+> on the rate-limited RTS) — the semantic-gap cases ('observability stack' → the *Datadog* decision)
+> need the LLM expansion, which is available but off on the live card. An honest cost, stated plainly.
+> Full method + limits in [`BENCHMARK.md`](BENCHMARK.md); one command: `python benchmarks/run.py --md`.
 
 ## Privacy
 

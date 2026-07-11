@@ -41,16 +41,19 @@ python scripts/verify_all.py   # the cross-phase gate — one green table (below
 
 ## Does the arc beat search? (benchmark)
 
-On a **held-out set we never tuned on**, single-hit search surfaces the standing decision **1/6**
-times and invents one on noise **1/4** times. **Déjà → 5/6, never invents one (0/4).** (Dev set:
-6/6 recurring, 0/5 false decisions.)
+Measured on the **exact live pipeline** (`judge(sentence) → recall_arc`). On a **held-out set we
+never tuned on**, single-hit search surfaces the standing decision **1/6** times and drifts onto an
+unrelated decision **1/4** times. **Déjà → 4/6, never invents one (0/4).** (Dev set: 6/6 recurring,
+0 false decisions.)
 
 > **We surface this, we don't hide it:** Slack's Real-Time Search is rate-limited to ~1 call every
 > few minutes (measured `Retry-After: 288s`), so a 100+-query *live* benchmark isn't possible. The
-> benchmark runs the **real engine** through a **reproducible, RTS-free harness** (a local mirror
-> injected via `recall_fn`/`thread_fn`), **calibrated to the live RTS dev results** (6/6, 7/7, 0/5),
-> which it reproduces exactly. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · run it with
-> `python benchmarks/run.py --md`.
+> benchmark runs the **real engine including the LLM judge** (cached) through a reproducible RTS-free
+> mirror, **calibrated to live** — sentences that fail live route through the same code here and were
+> verified to match. Held-out recurring is **4/6, not higher**, because the live card path is
+> lexical-only (no LLM in the hot path): the semantic-gap cases ('observability stack' → the *Datadog*
+> decision) need the LLM expansion, which is available but off live for speed. Honest cost, not a
+> hidden failure. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · `python benchmarks/run.py --md`.
 
 ## MCP — query Déjà's memory from any agent
 ```bash
