@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "deja": {
+      "command": "/absolute/path/to/slackhack/.venv/bin/python",
+      "args": ["-m", "deja.mcp_server"],
+      "cwd": "/absolute/path/to/slackhack"
+    }
+  }
+}

@@ -10,6 +10,43 @@
 3. `slack run` — installs the app to Deja and runs it locally in socket mode.
 4. In Slack, `@Déjà …` in a channel (or DM the app) → it replies *"Déjà çevrimiçi …"*. That round-trip is the Phase-1 done-signal.
 
+## MCP server — query Déjà's memory from any agent
+
+Déjà's memory is also a standalone **MCP server**, so any agent or IDE (Cursor, Claude Desktop,
+Agentforce) can call `recall_memory` and pull the team's past decisions — the second required
+technology (RTS + MCP) and the composability story.
+
+Run it (stdio, the default for local clients; `DEJA_MCP_TRANSPORT=streamable-http` for remote):
+```bash
+python -m deja.mcp_server        # or the console script: deja-mcp
+```
+
+Wire it into Cursor (`.cursor/mcp.json`) or Claude Desktop (`claude_desktop_config.json`):
+```json
+{ "mcpServers": { "deja": {
+  "command": ".venv/bin/python", "args": ["-m", "deja.mcp_server"],
+  "cwd": "/absolute/path/to/slackhack"
+} } }
+```
+
+**Tool** — `recall_memory(query, channel=None, limit=3)` returns structured content:
+```json
+{
+  "summary": "Your team already had 1 relevant discussion — most relevant in #general: Update after 3 weeks: we're ROLLING BACK the Temporal migration…",
+  "memories": [{
+    "source_message": "Kicking off the migration from our Redis-based job queue to Temporal…",
+    "what_happened_next": "Update after 3 weeks: we're ROLLING BACK the Temporal migration…",
+    "channel": "general", "author": "…", "ts": "…", "permalink": "https://…", "score": 0.67
+  }],
+  "searched": "should we migrate our job queue to Temporal"
+}
+```
+
+**Permission-aware:** the server searches with the configured user's RTS token, so it only ever sees
+channels that user can already access. In production this would be per-user OAuth; for the sandbox
+the single user token is enough. Verify end-to-end (real MCP client over stdio) with
+`python scripts/mcp_smoke.py`. (Architecture diagram — Phase 7 — should show this MCP arm.)
+
 ---
 
 # Starter Agent for Slack (Bolt for Python and Claude Agent SDK)

@@ -2,6 +2,8 @@
 
 RTS surfaces a thread by its parent (the question). The value is the conclusion, which lives in
 the replies, so we pull `conversations.replies` and pick the reply that best reads like a decision.
+We also expose an aliveness check: RTS can lag on deletions, so a hit whose parent is a tombstone
+is a stale ghost to be dropped.
 """
 from __future__ import annotations
 
@@ -21,19 +23,22 @@ def _clean(text: str) -> str:
     return _MARKER.sub("", text or "").strip().replace("\n", " ")
 
 
-async def fetch_decision(client, channel_id: str, thread_ts: str) -> tuple[str, str] | None:
-    """Return (decision_text, author_user_id) — the reply that best reads like the outcome, or None.
+def is_thread_alive(messages: list[dict]) -> bool:
+    """False if the thread's parent was deleted (a tombstone RTS may still be indexing)."""
+    parent = messages[0] if messages else None
+    if not parent or parent.get("subtype") == "tombstone":
+        return False
+    return "This message was deleted" not in (parent.get("text") or "")
 
-    Best-effort enrichment: any error (not in channel, no replies) just yields None.
-    """
-    if not channel_id or not thread_ts:
-        return None
-    resp = await client.conversations_replies(channel=channel_id, ts=thread_ts, limit=50)
+
+def pick_decision(messages: list[dict]) -> tuple[str, str] | None:
+    """From a thread's messages, return (decision_text, author_user_id) — the reply that best
+    reads like the outcome — or None. Skips Déjà's own cards/replies."""
     replies = [
-        m for m in resp.get("messages", [])[1:]  # skip the parent
+        m for m in messages[1:]  # skip the parent
         if not m.get("subtype")
         and (m.get("text") or "").strip()
-        and not _is_deja_card(m.get("text") or "")  # skip Déjà's own cards, keep real discussion
+        and not _is_deja_card(m.get("text") or "")
     ]
     if not replies:
         return None
@@ -50,3 +55,11 @@ async def fetch_decision(client, channel_id: str, thread_ts: str) -> tuple[str, 
     if len(text) > 240:
         text = text[:240] + "…"
     return text, best.get("user", "")
+
+
+async def fetch_decision(client, channel_id: str, thread_ts: str) -> tuple[str, str] | None:
+    """Convenience: fetch the thread and pick its decision. Best-effort — errors yield None."""
+    if not channel_id or not thread_ts:
+        return None
+    resp = await client.conversations_replies(channel=channel_id, ts=thread_ts, limit=50)
+    return pick_decision(resp.get("messages", []))

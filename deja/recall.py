@@ -29,9 +29,9 @@ RTS_METHOD = "assistant.search.context"
 DEFAULT_CHANNEL_TYPES = ["public_channel", "private_channel", "mpim", "im"]
 _WORD = re.compile(r"[a-z0-9]{3,}")
 
-# Déjà must never recall its OWN memory cards (they'd pollute results and loop). Its cards
-# always carry these phrases, so we drop any hit that looks like one, whoever posted it.
-_DEJA_FINGERPRINTS = ("your team already discussed", "powered by legibright", "déjà vu")
+# Déjà must never recall its OWN output (cards, replies, dismissals) — it would pollute results
+# and loop. All of Déjà's messages carry its name or tagline, so drop any hit that looks like one.
+_DEJA_FINGERPRINTS = ("déjà", "your team already discussed", "powered by legibright")
 
 
 def _is_deja_card(snippet: str) -> bool:
