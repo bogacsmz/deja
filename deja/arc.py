@@ -13,7 +13,32 @@ convenience that feeds it from `recall_memories`.
 from __future__ import annotations
 
 import datetime as dt
+import re
 from dataclasses import dataclass
+
+_MONTHS = {
+    m: i
+    for i, m in enumerate(
+        [
+            "jan",
+            "feb",
+            "mar",
+            "apr",
+            "may",
+            "jun",
+            "jul",
+            "aug",
+            "sep",
+            "oct",
+            "nov",
+            "dec",
+        ],
+        start=1,
+    )
+}
+# Seeded threads carry the intended date as a leading "[Mon DD]" because Slack messages can't be
+# back-dated; the timeline orders + displays by that content date rather than the (all-recent) ts.
+_DATE_RE = re.compile(r"\[\s*([A-Za-z]{3,9})\s+(\d{1,2})\s*\]")
 
 
 @dataclass(frozen=True)
@@ -59,6 +84,28 @@ def _short(text: str, n: int = 90) -> str:
     return t if len(t) <= n else t[:n].rstrip() + "…"
 
 
+def _ts_float(ts: str) -> float:
+    try:
+        return float(ts)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _content_date(text: str) -> tuple[tuple[int, int], str] | None:
+    """Parse a leading '[Mon DD]' → ((month, day), 'Mon DD'). None if absent/unrecognized."""
+    m = _DATE_RE.search(text or "")
+    if not m:
+        return None
+    mon = _MONTHS.get(m.group(1)[:3].lower())
+    if not mon:
+        return None
+    return (mon, int(m.group(2))), f"{m.group(1)[:3].title()} {int(m.group(2))}"
+
+
+def _strip_date(text: str) -> str:
+    return _DATE_RE.sub("", text or "", count=1).strip()
+
+
 def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
     """Synthesize a decision arc from recall memories (each memory is one thread). None if empty.
 
@@ -68,21 +115,32 @@ def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
     if not memories:
         return None
 
-    events = []
+    scored: list[tuple[tuple, ArcEvent]] = []
     for m in memories:
         decision = (m.get("what_happened_next") or "").strip()
-        events.append(
-            ArcEvent(
-                ts=str(m.get("ts", "")),
-                date=_fmt_date(str(m.get("ts", ""))),
-                channel=m.get("channel", ""),
-                author=m.get("author", ""),
-                summary=_short(decision or m.get("source_message", "")),
-                permalink=m.get("permalink", ""),
-                is_decision=bool(decision),
+        source = m.get("source_message", "")
+        ts = str(m.get("ts", ""))
+        cd = _content_date(source)
+        if cd:  # dated arc thread: order + show by its content date
+            sort_key, date = (0, *cd[0]), cd[1]
+        else:  # undated (legacy single / noise): fall back to post time
+            sort_key, date = (1, _ts_float(ts)), _fmt_date(ts)
+        scored.append(
+            (
+                sort_key,
+                ArcEvent(
+                    ts=ts,
+                    date=date,
+                    channel=m.get("channel", ""),
+                    author=m.get("author", ""),
+                    summary=_short(decision or _strip_date(source)),
+                    permalink=m.get("permalink", ""),
+                    is_decision=bool(decision),
+                ),
             )
         )
-    events.sort(key=lambda e: e.ts)  # chronological timeline
+    scored.sort(key=lambda x: x[0])  # chronological by content date (ts fallback)
+    events = [e for _, e in scored]
 
     decisions = [e for e in events if e.is_decision]
     if decisions:

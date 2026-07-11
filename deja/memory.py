@@ -18,7 +18,7 @@ from deja.recall import recall
 from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
 _log = logging.getLogger(__name__)
-_MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
+_MARKER = re.compile(r"\s*‹deja-[^›]*›")  # strip any Déjà seed marker (seed/arc/noise)
 
 
 def _clean(text: str) -> str:
@@ -46,7 +46,9 @@ async def recall_memories(
         return _result("Déjà is not configured (SLACK_USER_TOKEN missing).", [], query)
 
     try:
-        hits = await asyncio.to_thread(recall, query, limit=max(limit, 5))
+        # Over-fetch: RTS returns individual messages, so one thread can appear multiple times
+        # (its parent AND a reply both match). We dedupe by thread root below, then cap at `limit`.
+        hits = await asyncio.to_thread(recall, query, limit=max(limit * 3, 12))
     except Exception as e:  # noqa: BLE001 — surface as a clean summary, never throw to the client
         _log.warning("memory: recall failed for %r: %s", query, e)
         return _result(f"Search failed: {e}", [], query)
@@ -54,7 +56,6 @@ async def recall_memories(
     if channel:
         wanted = channel.lstrip("#").lower()
         hits = [h for h in hits if h.channel.lower() == wanted]
-    hits = hits[:limit]
 
     if not hits:
         scope = f" in #{channel.lstrip('#')}" if channel else ""
@@ -62,26 +63,40 @@ async def recall_memories(
 
     client = AsyncWebClient(token=token, timeout=15)
     memories: list[dict] = []
+    seen_roots: set[str] = set()
     for h in hits:
-        decision = ""
+        if len(memories) >= limit:
+            break
+        decision, author, source, root_ts = "", h.author, _clean(h.snippet), h.ts
         try:
             msgs = await fetch_thread_messages(
                 client, h.channel_id, h.ts
             )  # reply-aware
             if not is_thread_alive(msgs):
                 continue  # stale ghost: RTS returned a message that has since been deleted
-            found = pick_decision(msgs)
+            parent = msgs[0]
+            root_ts = parent.get("ts") or h.ts
+            found = pick_decision(msgs, require_decision=True)
             decision = found[0] if found else ""
-        except Exception as e:  # noqa: BLE001 — enrichment is best-effort; keep the memory as-is
+            # Author = the decider (decision reply) if any, else whoever opened the thread. RTS
+            # can't see chat:write.customize usernames — the fetched thread messages can.
+            parent_author = parent.get("username") or parent.get("user", "")
+            author = (found[1] if found else "") or parent_author or h.author
+            source = (
+                _clean(parent.get("text", "")) or source
+            )  # canonical = the thread's parent
+        except Exception as e:  # noqa: BLE001 — enrichment is best-effort; keep the raw hit
             _log.debug("memory: enrichment failed for %s: %s", h.ts, e)
-            decision = ""
+        if root_ts in seen_roots:
+            continue  # same thread reached via a second hit (parent + reply both matched)
+        seen_roots.add(root_ts)
         memories.append(
             {
-                "source_message": _clean(h.snippet),
+                "source_message": source,
                 "what_happened_next": decision,
                 "channel": h.channel,
-                "author": h.author,
-                "ts": h.ts,
+                "author": author,
+                "ts": root_ts,
                 "permalink": h.permalink,
                 "score": h.score,
             }

@@ -6,10 +6,16 @@ Seeds 3 topics that were each discussed several times across months, by differen
 discussed). Plus noise threads so recall isn't trivial. Multi-author via the BOT token +
 chat:write.customize (username/icon per message). Channels are resolved with the USER token.
 
-Dates live in the message text as a leading "[Mon DD]" so the timeline can show months apart
-(Slack messages can't be back-dated); threads are posted oldest-first so ts order matches.
+Content rules that make the live arc work (learned from real RTS behavior):
+  * RTS matches on a thread's PARENT text and returns only a few top hits — so every parent in an
+    arc carries the topic keywords, or RTS won't return the whole arc.
+  * The genuine decision lives in a REPLY with a decision cue ("decision/rolling back/going with/…").
+  * Reopen/restatement threads deliberately AVOID decision cues, so the standing decision stays the
+    real one (the latest genuine decision), not a later re-mention of it.
+  * Dates live in the text as a leading "[Mon DD]" (Slack can't back-date); threads post oldest-first.
 
-Idempotent: each thread carries a hidden marker; re-runs skip already-seeded threads.
+Idempotent: each thread carries a hidden marker; re-runs skip already-seeded threads. Obsolete
+markers from earlier revisions are deleted first.
 
     python scripts/seed_arcs.py            # seed
     python scripts/seed_arcs.py --dry-run  # plan only
@@ -57,11 +63,11 @@ class Thread:
 TEMPORAL = (
     Thread(
         "eng",
-        "‹deja-arc:temporal-1›",
+        "‹deja-arc:temporal-1-v2›",
         Msg(
             "Maya Chen",
-            "[Mar 12] Kicking off the migration from our Redis job queue to Temporal "
-            "next sprint — durability + retries are much nicer. Objections?",
+            "[Mar 12] Proposing we migrate our Redis job queue to Temporal — the "
+            "durability + retries story is much nicer. Any objections?",
         ),
         (
             Msg(
@@ -72,24 +78,28 @@ TEMPORAL = (
     ),
     Thread(
         "eng",
-        "‹deja-arc:temporal-2›",
+        "‹deja-arc:temporal-2-v2›",
         Msg(
             "Alex Rivera",
-            "[Apr 2] Temporal migration update: workers live in staging, replaying "
-            "a week of jobs to validate.",
+            "[Apr 2] Redis→Temporal job queue migration update: workers are live in "
+            "staging, replaying a week of jobs to validate.",
         ),
         (Msg("Sam Okoro", "how's the operational overhead looking so far?"),),
     ),
     Thread(
         "eng",
-        "‹deja-arc:temporal-3›",
-        Msg("Maya Chen", "[Apr 23] Calling it on the Temporal migration."),
+        "‹deja-arc:temporal-3-v2›",
+        Msg(
+            "Maya Chen",
+            "[Apr 23] Redis vs Temporal job queue migration — final call after three "
+            "weeks of trial.",
+        ),
         (
             Msg(
                 "Maya Chen",
-                "Decision: we're ROLLING BACK to Redis. Two blockers — (1) duplicate task "
-                "execution under a network partition, (2) the operational cost of the cluster isn't "
-                "worth it at our scale. Staying on Redis + a thin idempotency wrapper.",
+                "Decision: we're ROLLING BACK the Temporal migration to Redis. Two "
+                "blockers — duplicate task execution under a network partition, and the ops cost of "
+                "running the cluster. Staying on Redis + a thin idempotency wrapper.",
             ),
             Msg(
                 "Sam Okoro",
@@ -99,16 +109,16 @@ TEMPORAL = (
     ),
     Thread(
         "product",
-        "‹deja-arc:temporal-4›",
+        "‹deja-arc:temporal-4-v2›",
         Msg(
             "Diego Santos",
-            "[Jun 5] For the new ingestion pipeline, should we revisit Temporal "
-            "for orchestration?",
+            "[Jun 5] For the new ingestion pipeline, should we revisit the Temporal "
+            "job queue migration?",
         ),
         (
             Msg(
                 "Sam Okoro",
-                "we explored this in #eng back in April and moved away from it — "
+                "we explored this in #eng back in April and stepped away from it — "
                 "duplicate execution + ops cost. Let's not reopen without new data.",
             ),
             Msg("Diego Santos", "ah, missed that thread. Parking it for now."),
@@ -120,56 +130,55 @@ TEMPORAL = (
 MONITORING = (
     Thread(
         "ops",
-        "‹deja-arc:monitoring-1›",
+        "‹deja-arc:monitoring-1-v2›",
         Msg(
             "Sam Okoro",
-            "[Feb 8] Starting a Datadog trial for observability — APM + logs in one "
-            "place would be great.",
+            "[Feb 8] Starting a Datadog trial for observability/monitoring — APM + logs "
+            "in one place would be great.",
         ),
         (
             Msg(
                 "Priya Nair",
-                "let's watch the log ingestion pricing, that's where it bites.",
+                "let's watch the log ingestion pricing, that's where Datadog bites.",
             ),
         ),
     ),
     Thread(
         "ops",
-        "‹deja-arc:monitoring-2›",
-        Msg("Priya Nair", "[Mar 3] Datadog verdict after the trial."),
+        "‹deja-arc:monitoring-2-v2›",
+        Msg("Priya Nair", "[Mar 3] Datadog monitoring verdict after the trial."),
         (
             Msg(
                 "Priya Nair",
-                "Decision: we're DROPPING Datadog. At our log volume the bill "
-                "projected to 5x our infra cost. Going with self-hosted Grafana + Loki + Tempo "
-                "instead — more setup, but predictable cost.",
+                "Decision: we're DROPPING Datadog for monitoring. At our log volume the "
+                "bill projected to 5x our infra cost. Going with self-hosted Grafana + Loki + Tempo.",
             ),
             Msg("Tom Becker", "makes sense, I'll own the Grafana stack."),
         ),
     ),
     Thread(
         "eng",
-        "‹deja-arc:monitoring-3›",
+        "‹deja-arc:monitoring-3-v2›",
         Msg(
             "Tom Becker",
-            "[May 19] Can we get Datadog APM just for the new payments service? "
-            "The tracing would help.",
+            "[May 19] Can we get Datadog APM for the new payments service? The "
+            "monitoring/tracing would really help.",
         ),
         (
             Msg(
                 "Priya Nair",
-                "we evaluated Datadog in March and dropped it for cost — standing "
-                "decision is the Grafana/Loki/Tempo stack. Happy to help wire tracing into that.",
+                "we looked at Datadog back in March — the Grafana/Loki/Tempo stack we "
+                "run already covers tracing, happy to wire the payments service into it.",
             ),
         ),
     ),
 )
 
-# --- Arc 3: Deploy cadence (proposed -> DECIDED continuous -> re-debated) -------------------------
+# --- Arc 3: Deploy cadence (propose -> DECIDED continuous -> re-debated) --------------------------
 DEPLOY = (
     Thread(
         "eng",
-        "‹deja-arc:deploy-1›",
+        "‹deja-arc:deploy-1-v2›",
         Msg(
             "Lena Fischer",
             "[Jan 15] Our weekly release trains keep bottlenecking. Should we move "
@@ -178,43 +187,46 @@ DEPLOY = (
         (
             Msg(
                 "Alex Rivera",
-                "as long as we have solid rollback + feature flags, I'm for it.",
+                "as long as we have good CI gates and feature flags, I'm for it.",
             ),
         ),
     ),
     Thread(
         "eng",
-        "‹deja-arc:deploy-2›",
-        Msg("Lena Fischer", "[Jan 29] Deploy cadence decision."),
+        "‹deja-arc:deploy-2-v2›",
+        Msg(
+            "Lena Fischer",
+            "[Jan 29] Continuous deploy vs weekly release trains — final cadence call.",
+        ),
         (
             Msg(
                 "Lena Fischer",
-                "Decided: we're going with continuous deploy on merge to main, "
-                "gated by CI + feature flags. I'll own the rollout runbook. Weekly trains are gone.",
+                "Decided: we're going with continuous deploy on merge to main, gated "
+                "by CI + feature flags. I'll own the rollout runbook. Weekly release trains are gone.",
             ),
             Msg("Diego Santos", "🎉 finally. Docs updated."),
         ),
     ),
     Thread(
         "general",
-        "‹deja-arc:deploy-3›",
+        "‹deja-arc:deploy-3-v2›",
         Msg(
             "Tom Becker",
-            "[Apr 11] Can we go back to scheduled releases? Continuous deploy feels "
-            "risky for the payments work.",
+            "[Apr 11] Can we go back to scheduled release trains? Continuous deploy "
+            "feels risky for the payments work.",
         ),
         (
             Msg(
                 "Lena Fischer",
-                "we moved to continuous deploy in January for flow + smaller blast "
-                "radius, and I own that runbook — let's not relitigate. Happy to add an extra gate "
-                "for payments specifically though.",
+                "we moved to continuous deploy on merge back in January for flow + "
+                "smaller blast radius, and I own that runbook. Happy to add an extra gate for "
+                "payments specifically.",
             ),
         ),
     ),
 )
 
-# --- Noise: no decisions, recall should stay silent on these -------------------------------------
+# --- Noise: no decisions, recall should stay silent / inconclusive on these ----------------------
 NOISE = (
     Thread(
         "random",
@@ -251,8 +263,20 @@ ARCS = {
     "Deploy cadence": DEPLOY,
 }
 ALL_THREADS = [t for arc in ARCS.values() for t in arc] + list(NOISE)
-# Old single-author Temporal thread (Phase-5) is replaced by the multi-author arc above.
-OBSOLETE_MARKERS = ("‹deja-seed:eng-temporal-v1›",)
+# Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above.
+OBSOLETE_MARKERS = (
+    "‹deja-seed:eng-temporal-v1›",
+    "‹deja-arc:temporal-1›",
+    "‹deja-arc:temporal-2›",
+    "‹deja-arc:temporal-3›",
+    "‹deja-arc:temporal-4›",
+    "‹deja-arc:monitoring-1›",
+    "‹deja-arc:monitoring-2›",
+    "‹deja-arc:monitoring-3›",
+    "‹deja-arc:deploy-1›",
+    "‹deja-arc:deploy-2›",
+    "‹deja-arc:deploy-3›",
+)
 
 
 def _channels(user: WebClient) -> dict[str, str]:
@@ -280,12 +304,8 @@ def _seeded_markers(user: WebClient, channel_id: str) -> set[str]:
 def _ensure_bot_in(user: WebClient, channel_id: str, bot_user: str) -> None:
     try:
         user.conversations_invite(channel=channel_id, users=bot_user)
-    except SlackApiError as e:
-        if e.response.data.get("error") not in (
-            "already_in_channel",
-            "cant_invite_self",
-        ):
-            pass  # best-effort; a post that fails will report not_in_channel
+    except SlackApiError:
+        pass  # already in channel, or no invite scope — a failed post will report not_in_channel
 
 
 def _delete_obsolete(user: WebClient, channels: dict[str, str]) -> int:
@@ -321,7 +341,9 @@ def main(argv=None) -> int:
     if not dry:
         removed = _delete_obsolete(user, channels)
         if removed:
-            print(f"[seed] removed {removed} obsolete single-author message(s)")
+            print(
+                f"[seed] removed {removed} obsolete message(s) from earlier revisions"
+            )
 
     seen_cache: dict[str, set[str]] = {}
     for t in ALL_THREADS:
