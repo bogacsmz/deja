@@ -1,4 +1,6 @@
-def build_app_home_view(install_url: str | None = None, is_connected: bool = False) -> dict:
+def build_app_home_view(
+    install_url: str | None = None, is_connected: bool = False
+) -> dict:
     """Build Déjà's App Home tab — what it is, how it works, and the privacy promise.
 
     (Args kept for compatibility with the scaffold's app_home_opened handler; unused here.)
@@ -6,7 +8,11 @@ def build_app_home_view(install_url: str | None = None, is_connected: bool = Fal
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": "⏳ Déjà — your team's memory", "emoji": True},
+            "text": {
+                "type": "plain_text",
+                "text": "⏳ Déjà — your team's memory",
+                "emoji": True,
+            },
         },
         {
             "type": "section",
@@ -35,10 +41,12 @@ def build_app_home_view(install_url: str | None = None, is_connected: bool = Fal
         },
         {
             "type": "context",
-            "elements": [{
-                "type": "mrkdwn",
-                "text": "Add me to a channel and I start listening. Mention me (`@Déjà …`) to ask directly.",
-            }],
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": "Add me to a channel and I start listening. Mention me (`@Déjà …`) to ask directly.",
+                }
+            ],
         },
         {"type": "divider"},
         {

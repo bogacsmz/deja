@@ -10,13 +10,16 @@ Auth: the server uses the RTS user token from .env (SLACK_USER_TOKEN), so result
 permission-aware — only channels that user can access. In production this would be per-user
 OAuth; for the sandbox the single user token is enough.
 """
+
 from __future__ import annotations
 
 import os
 
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=False)  # make SLACK_USER_TOKEN available to the server process
+load_dotenv(
+    ".env", override=False
+)  # make SLACK_USER_TOKEN available to the server process
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
@@ -47,7 +50,9 @@ async def recall_memory(query: str, channel: str | None = None, limit: int = 3) 
 
 
 def main() -> None:
-    transport = os.environ.get("DEJA_MCP_TRANSPORT", "stdio")  # stdio | streamable-http | sse
+    transport = os.environ.get(
+        "DEJA_MCP_TRANSPORT", "stdio"
+    )  # stdio | streamable-http | sse
     mcp.run(transport=transport)
 
 

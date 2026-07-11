@@ -5,6 +5,7 @@ the replies, so we pull `conversations.replies` and pick the reply that best rea
 We also expose an aliveness check: RTS can lag on deletions, so a hit whose parent is a tombstone
 is a stale ghost to be dropped.
 """
+
 from __future__ import annotations
 
 import re
@@ -13,9 +14,25 @@ from deja.recall import _is_deja_card
 
 _MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
 _DECISION_HINTS = (
-    "roll back", "rolled back", "rolling back", "reverted", "decided", "went with",
-    "sticking with", "instead", "in the end", "chose", "final", "won't", "abandon",
-    "not worth", "postpone", "shelved", "conclusion", "we'll keep", "keeping",
+    "roll back",
+    "rolled back",
+    "rolling back",
+    "reverted",
+    "decided",
+    "went with",
+    "sticking with",
+    "instead",
+    "in the end",
+    "chose",
+    "final",
+    "won't",
+    "abandon",
+    "not worth",
+    "postpone",
+    "shelved",
+    "conclusion",
+    "we'll keep",
+    "keeping",
 )
 
 
@@ -35,7 +52,8 @@ def pick_decision(messages: list[dict]) -> tuple[str, str] | None:
     """From a thread's messages, return (decision_text, author_user_id) — the reply that best
     reads like the outcome — or None. Skips Déjà's own cards/replies."""
     replies = [
-        m for m in messages[1:]  # skip the parent
+        m
+        for m in messages[1:]  # skip the parent
         if not m.get("subtype")
         and (m.get("text") or "").strip()
         and not _is_deja_card(m.get("text") or "")
@@ -49,7 +67,9 @@ def pick_decision(messages: list[dict]) -> tuple[str, str] | None:
 
     best = max(replies, key=decision_score)
     if decision_score(best) == 0:
-        best = replies[-1]  # no clear decision cue -> the latest reply is the freshest state
+        best = replies[
+            -1
+        ]  # no clear decision cue -> the latest reply is the freshest state
 
     text = _clean(best.get("text", ""))
     if len(text) > 240:
@@ -68,13 +88,19 @@ async def fetch_thread_messages(client, channel_id: str, ts: str) -> list[dict]:
     if msgs:
         first = msgs[0]
         root = first.get("thread_ts") or first.get("ts")
-        if root and root != first.get("ts"):  # `ts` was a reply — re-fetch from the thread root
-            resp = await client.conversations_replies(channel=channel_id, ts=root, limit=50)
+        if root and root != first.get(
+            "ts"
+        ):  # `ts` was a reply — re-fetch from the thread root
+            resp = await client.conversations_replies(
+                channel=channel_id, ts=root, limit=50
+            )
             msgs = resp.get("messages", [])
     return msgs
 
 
-async def fetch_decision(client, channel_id: str, thread_ts: str) -> tuple[str, str] | None:
+async def fetch_decision(
+    client, channel_id: str, thread_ts: str
+) -> tuple[str, str] | None:
     """Convenience: fetch the thread and pick its decision. Best-effort — errors yield None."""
     if not channel_id or not thread_ts:
         return None

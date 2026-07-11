@@ -2,6 +2,7 @@
 
 No live Slack — the seeder's I/O goes through an injected fake WebClient.
 """
+
 from __future__ import annotations
 
 import sys
@@ -15,6 +16,7 @@ from seed_data import SEEDS, is_decision  # noqa: E402
 
 
 # --------------------------------------------------------------------------- dataset integrity
+
 
 def test_markers_are_unique():
     markers = [t.marker for t in SEEDS]
@@ -45,6 +47,7 @@ def test_is_decision_helper():
 
 
 # ------------------------------------------------------------------------------- fake client
+
 
 class FakeSlack:
     """Minimal stand-in for slack_sdk.WebClient covering only what the seeder calls."""
@@ -79,6 +82,7 @@ def _status_by_topic(results):
 
 
 # ------------------------------------------------------------------------------- seeder logic
+
 
 def test_dry_run_posts_nothing():
     client = FakeSlack(_ALL_CHANNELS)

@@ -4,6 +4,7 @@
 ('what happened next') and returns a clean, LLM-friendly structured result. No LLM here — the
 caller (a Slack event, or an external agent via MCP) decides *when* to ask and *what* to ask.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,7 +27,9 @@ def _result(summary: str, memories: list[dict], query: str) -> dict:
     return {"summary": summary, "memories": memories, "searched": query}
 
 
-async def recall_memories(query: str, channel: str | None = None, limit: int = 3) -> dict:
+async def recall_memories(
+    query: str, channel: str | None = None, limit: int = 3
+) -> dict:
     """Return prior team discussions relevant to `query`, newest-decision included.
 
     Shape: {summary, memories:[{source_message, what_happened_next, channel, author, ts,
@@ -59,22 +62,26 @@ async def recall_memories(query: str, channel: str | None = None, limit: int = 3
     for h in hits:
         decision = ""
         try:
-            msgs = await fetch_thread_messages(client, h.channel_id, h.ts)  # reply-aware
+            msgs = await fetch_thread_messages(
+                client, h.channel_id, h.ts
+            )  # reply-aware
             if not is_thread_alive(msgs):
                 continue  # stale ghost: RTS returned a message that has since been deleted
             found = pick_decision(msgs)
             decision = found[0] if found else ""
         except Exception:  # noqa: BLE001 — enrichment is best-effort; keep the memory without a decision
             decision = ""
-        memories.append({
-            "source_message": _clean(h.snippet),
-            "what_happened_next": decision,
-            "channel": h.channel,
-            "author": h.author,
-            "ts": h.ts,
-            "permalink": h.permalink,
-            "score": h.score,
-        })
+        memories.append(
+            {
+                "source_message": _clean(h.snippet),
+                "what_happened_next": decision,
+                "channel": h.channel,
+                "author": h.author,
+                "ts": h.ts,
+                "permalink": h.permalink,
+                "score": h.score,
+            }
+        )
 
     if not memories:
         return _result(f"No live prior discussion found for “{query}”.", [], query)
@@ -85,6 +92,8 @@ async def recall_memories(query: str, channel: str | None = None, limit: int = 3
     top = memories[0]
     outcome = top["what_happened_next"] or top["source_message"]
     plural = "discussion" if len(memories) == 1 else "discussions"
-    summary = (f"Your team already had {len(memories)} relevant {plural} — most relevant in "
-               f"#{top['channel']}: {outcome[:200]}")
+    summary = (
+        f"Your team already had {len(memories)} relevant {plural} — most relevant in "
+        f"#{top['channel']}: {outcome[:200]}"
+    )
     return _result(summary, memories, query)

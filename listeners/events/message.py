@@ -6,7 +6,9 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from deja.respond import recall_card
 
-_MIN_LEN = 12  # cheap guard: skip trivially short messages before spending an LLM judgment
+_MIN_LEN = (
+    12  # cheap guard: skip trivially short messages before spending an LLM judgment
+)
 
 
 async def handle_message(

@@ -17,6 +17,12 @@ jobs:
       - name: Install
         run: pip install -e ".[test]"
 
+      - name: Lint + format check
+        run: |
+          pip install ruff==0.15.20
+          ruff check .
+          ruff format --check .
+
       - name: Unit + integration tests
         run: pytest -q
 

@@ -4,6 +4,7 @@ Compact, vertical, scannable: header + what-was-searched + the found message (ch
 + quote) + 'what happened next' (the thread's decision) + actions + a privacy line. Pure builder,
 no I/O, so it's easy to validate and unit-test.
 """
+
 from __future__ import annotations
 
 from deja.models import Hit
@@ -31,13 +32,20 @@ def build_memory_card(
     query: str, hit: Hit, decision: tuple[str, str] | None
 ) -> tuple[list[dict], str]:
     """Return (blocks, fallback_text) for a recalled thread."""
-    when = f"<!date^{_epoch(hit.ts)}^{{date_short_pretty}}|earlier>" if _epoch(hit.ts) else "earlier"
+    when = (
+        f"<!date^{_epoch(hit.ts)}^{{date_short_pretty}}|earlier>"
+        if _epoch(hit.ts)
+        else "earlier"
+    )
 
     blocks: list[dict] = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": "⏳ Déjà vu — your team already discussed this",
-                     "emoji": True},
+            "text": {
+                "type": "plain_text",
+                "text": "⏳ Déjà vu — your team already discussed this",
+                "emoji": True,
+            },
         },
         {
             "type": "context",
@@ -45,36 +53,68 @@ def build_memory_card(
         },
         {
             "type": "section",
-            "text": {"type": "mrkdwn",
-                     "text": f"*#{hit.channel}* · {_author(hit.author, hit.author_id)} · {when}\n"
-                             f"{_quote(hit.snippet)}"},
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*#{hit.channel}* · {_author(hit.author, hit.author_id)} · {when}\n"
+                f"{_quote(hit.snippet)}",
+            },
         },
     ]
 
     if decision:
         d_text, d_user = decision
         by = f"  — {_author('', d_user)}" if d_user.startswith("U") else ""
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f":thread: *What happened next{by}:*\n{_quote(d_text)}"},
-        })
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":thread: *What happened next{by}:*\n{_quote(d_text)}",
+                },
+            }
+        )
 
-    blocks.append({
-        "type": "actions",
-        "elements": [
-            {"type": "button", "action_id": "deja_open_thread", "style": "primary",
-             "text": {"type": "plain_text", "text": "🔗 Open source thread", "emoji": True},
-             "url": hit.permalink},
-            {"type": "button", "action_id": "deja_not_relevant",
-             "text": {"type": "plain_text", "text": "🙅 Not relevant", "emoji": True},
-             "value": hit.permalink},
-        ],
-    })
-    blocks.append({
-        "type": "context",
-        "elements": [{"type": "mrkdwn",
-                      "text": ":lock: Only searches channels you can access · powered by Legibright"}],
-    })
+    blocks.append(
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "action_id": "deja_open_thread",
+                    "style": "primary",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "🔗 Open source thread",
+                        "emoji": True,
+                    },
+                    "url": hit.permalink,
+                },
+                {
+                    "type": "button",
+                    "action_id": "deja_not_relevant",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "🙅 Not relevant",
+                        "emoji": True,
+                    },
+                    "value": hit.permalink,
+                },
+            ],
+        }
+    )
+    blocks.append(
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": ":lock: Only searches channels you can access · powered by Legibright",
+                }
+            ],
+        }
+    )
 
-    fallback = f"Déjà vu — your team already discussed “{query}”. Source: {hit.permalink}"
+    fallback = (
+        f"Déjà vu — your team already discussed “{query}”. Source: {hit.permalink}"
+    )
     return blocks, fallback

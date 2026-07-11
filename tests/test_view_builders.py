@@ -25,12 +25,16 @@ def test_home_view_structure():
 def test_home_view_explains_and_states_privacy():
     """It says what Déjà does and makes the permission-aware privacy promise."""
     text = " ".join(
-        b["text"]["text"] for b in build_app_home_view()["blocks"] if b["type"] == "section"
+        b["text"]["text"]
+        for b in build_app_home_view()["blocks"]
+        if b["type"] == "section"
     )
-    assert "past thread" in text                      # what it does
-    assert "channels" in text and "you" in text       # permission-aware privacy promise
+    assert "past thread" in text  # what it does
+    assert "channels" in text and "you" in text  # permission-aware privacy promise
 
 
 def test_home_view_ignores_legacy_args():
     """Legacy scaffold args are accepted (compat) but no longer change the view."""
-    assert build_app_home_view(install_url="x", is_connected=True) == build_app_home_view()
+    assert (
+        build_app_home_view(install_url="x", is_connected=True) == build_app_home_view()
+    )

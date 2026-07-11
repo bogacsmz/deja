@@ -16,6 +16,7 @@ Design rules (kept deliberately simple so the seeder and tests stay hermetic):
 
 This module holds DATA only — no Slack calls. `scripts/seed_deja.py` consumes it.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,9 +24,23 @@ from dataclasses import dataclass
 # Words/phrases that mark a reply as the concrete decision or outcome of a thread — this is the
 # "what happened next" signal recall surfaces. Used by the seeder summary and enforced by tests.
 DECISION_MARKERS: tuple[str, ...] = (
-    "decision:", "decided", "outcome:", "update:", "update after", "rolling back",
-    "rolled back", "reverted", "we're going with", "going with", "we're buying",
-    "we killed", "killed the", "dropping", "standardizing on", "we tried", "we reverted",
+    "decision:",
+    "decided",
+    "outcome:",
+    "update:",
+    "update after",
+    "rolling back",
+    "rolled back",
+    "reverted",
+    "we're going with",
+    "going with",
+    "we're buying",
+    "we killed",
+    "killed the",
+    "dropping",
+    "standardizing on",
+    "we tried",
+    "we reverted",
     "consolidated",
 )
 
@@ -38,11 +53,11 @@ def is_decision(text: str) -> bool:
 
 @dataclass(frozen=True)
 class SeedThread:
-    channel: str          # channel name without leading '#'
-    marker: str           # unique hidden idempotency marker, appended to the parent
-    parent: str           # the opening proposal / question
+    channel: str  # channel name without leading '#'
+    marker: str  # unique hidden idempotency marker, appended to the parent
+    parent: str  # the opening proposal / question
     replies: tuple[str, ...]  # discussion; at least one is the decision/outcome
-    topic: str            # short human label for summaries/logs
+    topic: str  # short human label for summaries/logs
 
     def has_decision(self) -> bool:
         return any(is_decision(r) for r in self.replies)

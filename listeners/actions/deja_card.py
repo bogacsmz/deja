@@ -10,7 +10,9 @@ async def handle_open_thread(ack: Ack):
     await ack()
 
 
-async def handle_not_relevant(ack: Ack, body: dict, client: AsyncWebClient, logger: Logger):
+async def handle_not_relevant(
+    ack: Ack, body: dict, client: AsyncWebClient, logger: Logger
+):
     """'🙅 Not relevant' — collapse the card to a dismissed note and log it (a precision signal
     we can learn from later)."""
     await ack()
@@ -23,15 +25,21 @@ async def handle_not_relevant(ack: Ack, body: dict, client: AsyncWebClient, logg
             channel=channel,
             ts=ts,
             text="Déjà — dismissed",
-            blocks=[{
-                "type": "context",
-                "elements": [{
-                    "type": "mrkdwn",
-                    "text": ":wave: Dismissed — I'll stay quiet on this one. "
+            blocks=[
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": ":wave: Dismissed — I'll stay quiet on this one. "
                             "_(noted to improve what I surface)_",
-                }],
-            }],
+                        }
+                    ],
+                }
+            ],
         )
-        logger.info(f"deja_not_relevant: dismissed by {user} in {channel} (source={source})")
+        logger.info(
+            f"deja_not_relevant: dismissed by {user} in {channel} (source={source})"
+        )
     except Exception as e:
         logger.exception(f"Failed to handle 'not relevant': {e}")

@@ -21,7 +21,11 @@ async def handle_app_mentioned(
     thread_ts = event.get("thread_ts") or event["ts"]
     text = _MENTION.sub("", event.get("text", "")).strip()
     try:
-        card = await recall_card(text, client, exclude_ts=event.get("ts")) if text else None
+        card = (
+            await recall_card(text, client, exclude_ts=event.get("ts"))
+            if text
+            else None
+        )
         if card:
             await say(blocks=card["blocks"], text=card["text"], thread_ts=thread_ts)
         else:

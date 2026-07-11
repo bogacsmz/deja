@@ -7,6 +7,7 @@ live card to screenshot for Gate 4.
 
 Prereqs: seeded workspace, SLACK_USER_TOKEN in .env, Max-authed claude. Run:  python scripts/preview_card.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -32,7 +33,11 @@ async def _channel_id(client: AsyncWebClient, name: str) -> str | None:
     cursor = None
     while True:
         r = await client.conversations_list(
-            types="public_channel,private_channel", limit=200, cursor=cursor, team_id=TEAM_ID)
+            types="public_channel,private_channel",
+            limit=200,
+            cursor=cursor,
+            team_id=TEAM_ID,
+        )
         for ch in r["channels"]:
             if ch.get("name") == name:
                 return ch["id"]
@@ -53,8 +58,12 @@ async def main() -> int:
         print(f"channel #{CHANNEL} not found")
         return 1
 
-    resp = await client.chat_postMessage(channel=cid, blocks=card["blocks"], text=card["text"])
-    link = (await client.chat_getPermalink(channel=cid, message_ts=resp["ts"]))["permalink"]
+    resp = await client.chat_postMessage(
+        channel=cid, blocks=card["blocks"], text=card["text"]
+    )
+    link = (await client.chat_getPermalink(channel=cid, message_ts=resp["ts"]))[
+        "permalink"
+    ]
 
     blob = str(card["blocks"])
     print("card posted OK ✓  (Slack accepted the Block Kit)")

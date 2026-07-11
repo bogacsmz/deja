@@ -6,6 +6,7 @@ Temporal thread (with its rollback decision + permalink) comes back. No browser 
 
 Prereqs: seeded workspace, SLACK_USER_TOKEN in .env.  Run:  python scripts/mcp_smoke.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -62,8 +63,12 @@ async def main() -> int:
     print("searched:", data.get("searched"))
     memories = data.get("memories", [])
     for m in memories:
-        print(f"  - #{m['channel']} · score {m['score']} :: {m['source_message'][:60]!r}")
-        print(f"      what_happened_next: {(m['what_happened_next'] or '(none)')[:80]!r}")
+        print(
+            f"  - #{m['channel']} · score {m['score']} :: {m['source_message'][:60]!r}"
+        )
+        print(
+            f"      what_happened_next: {(m['what_happened_next'] or '(none)')[:80]!r}"
+        )
         print(f"      permalink: {m['permalink']}")
 
     ok = (
@@ -71,9 +76,16 @@ async def main() -> int:
         and bool(memories)
         and any("temporal" in m["source_message"].lower() for m in memories)
         and all(m["permalink"].startswith("http") for m in memories)
-        and any("rolling back" in (m["what_happened_next"] or "").lower() for m in memories)
+        and any(
+            "rolling back" in (m["what_happened_next"] or "").lower() for m in memories
+        )
     )
-    print("\nMCP SMOKE:", "PASS ✅ (external client got the Temporal memory + decision)" if ok else "FAIL ❌")
+    print(
+        "\nMCP SMOKE:",
+        "PASS ✅ (external client got the Temporal memory + decision)"
+        if ok
+        else "FAIL ❌",
+    )
     return 0 if ok else 1
 
 

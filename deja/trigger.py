@@ -11,6 +11,7 @@ No API key is set in code; nothing here bills per token when the subscription to
 This is the Phase 3 seed: the judgment primitive + its own harness. Wiring it into the Slack
 event handlers (auto-trigger on channel messages) is the rest of Phase 3.
 """
+
 from __future__ import annotations
 
 import json

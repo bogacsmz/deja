@@ -3,6 +3,7 @@
 Needs a live Slack RTS token + the seeded workspace, so it skips when SLACK_USER_TOKEN / .env
 is absent (e.g. tokenless CI). Runs headless — no browser.
 """
+
 import asyncio
 import os
 import pathlib
@@ -16,7 +17,9 @@ sys.path.insert(0, str(REPO / "scripts"))
 _HAS_TOKEN = bool(os.environ.get("SLACK_USER_TOKEN")) or (REPO / ".env").exists()
 
 
-@pytest.mark.skipif(not _HAS_TOKEN, reason="needs a live Slack RTS token + seeded workspace")
+@pytest.mark.skipif(
+    not _HAS_TOKEN, reason="needs a live Slack RTS token + seeded workspace"
+)
 def test_mcp_stdio_recall_memory():
     import mcp_smoke  # noqa: PLC0415 — imported lazily so collection doesn't require the token
 

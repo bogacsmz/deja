@@ -22,6 +22,7 @@ Usage:
 
 Prereqs: create the channels in the Deja workspace and join them first.
 """
+
 from __future__ import annotations
 
 import os
@@ -33,7 +34,9 @@ from slack_sdk.errors import SlackApiError
 
 try:  # works when run as `python scripts/seed_deja.py` (scripts/ is on sys.path[0])
     from seed_data import SEEDS, SeedThread
-except ModuleNotFoundError:  # works when imported as scripts.seed_data (e.g. from repo root)
+except (
+    ModuleNotFoundError
+):  # works when imported as scripts.seed_data (e.g. from repo root)
     from scripts.seed_data import SEEDS, SeedThread
 
 load_dotenv(".env", override=False)
@@ -48,7 +51,10 @@ def resolve_channel_ids(client: WebClient, team_id: str = TEAM_ID) -> dict[str, 
     cursor = None
     while True:
         resp = client.conversations_list(
-            types="public_channel,private_channel", limit=200, cursor=cursor, team_id=team_id
+            types="public_channel,private_channel",
+            limit=200,
+            cursor=cursor,
+            team_id=team_id,
         )
         for ch in resp["channels"]:
             name = ch.get("name")
@@ -72,7 +78,9 @@ def post_thread(client: WebClient, channel_id: str, thread: SeedThread) -> str:
     thread_ts = parent["ts"]
     for reply in thread.replies:
         client.chat_postMessage(channel=channel_id, text=reply, thread_ts=thread_ts)
-    return client.chat_getPermalink(channel=channel_id, message_ts=thread_ts)["permalink"]
+    return client.chat_getPermalink(channel=channel_id, message_ts=thread_ts)[
+        "permalink"
+    ]
 
 
 def seed_workspace(
@@ -111,7 +119,9 @@ def seed_workspace(
 _ICON = {"posted": "✅", "would-post": "📝", "skipped": "⏭️ ", "missing": "⚠️ "}
 
 
-def _print_summary(results: list[tuple[str, SeedThread, str | None]], dry_run: bool) -> None:
+def _print_summary(
+    results: list[tuple[str, SeedThread, str | None]], dry_run: bool
+) -> None:
     header = "[seed] DRY RUN — nothing was posted" if dry_run else "[seed] done"
     print(header)
     counts: dict[str, int] = {}
@@ -124,11 +134,15 @@ def _print_summary(results: list[tuple[str, SeedThread, str | None]], dry_run: b
     tally = ", ".join(f"{n} {s}" for s, n in sorted(counts.items()))
     print(f"[seed] {tally}")
     if any(s == "missing" for s, _, _ in results):
-        print("[seed] note: 'missing' channels don't exist / you're not a member — create+join "
-              "them in Deja, then re-run (idempotent).")
+        print(
+            "[seed] note: 'missing' channels don't exist / you're not a member — create+join "
+            "them in Deja, then re-run (idempotent)."
+        )
     if any(s == "posted" for s, _, _ in results):
-        print("[seed] note: RTS may take a short while to index new messages before recall finds "
-              "them.")
+        print(
+            "[seed] note: RTS may take a short while to index new messages before recall finds "
+            "them."
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -144,9 +158,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         results = seed_workspace(client, dry_run=dry_run)
     except SlackApiError as e:
-        print(f"ERROR: {e.response.data.get('error')} — check the user token has chat:write + "
-              "channels:read + channels:history and that you're a member of the channels.",
-              file=sys.stderr)
+        print(
+            f"ERROR: {e.response.data.get('error')} — check the user token has chat:write + "
+            "channels:read + channels:history and that you're a member of the channels.",
+            file=sys.stderr,
+        )
         return 1
 
     _print_summary(results, dry_run)

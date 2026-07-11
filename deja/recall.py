@@ -14,6 +14,7 @@ and sort (score desc, then ts desc) before taking the top-K. Same input -> same 
 
 No LLM here: the query is passed in verbatim (Phase 3 will generate it from a channel message).
 """
+
 from __future__ import annotations
 
 import os
@@ -92,9 +93,16 @@ def _to_hit(result: dict, query: str) -> Hit:
     return Hit(
         reply_count=reply_count,
         permalink=_first(result, "permalink", "link"),
-        channel=_first(result, "channel_name", "channel", default=_first(result, "channel_id")),
+        channel=_first(
+            result, "channel_name", "channel", default=_first(result, "channel_id")
+        ),
         channel_id=_first(result, "channel_id"),
-        author=_first(result, "author_name", "username", default=_first(result, "author_user_id", "user")),
+        author=_first(
+            result,
+            "author_name",
+            "username",
+            default=_first(result, "author_user_id", "user"),
+        ),
         author_id=_first(result, "author_user_id", "user"),
         ts=_first(result, "message_ts", "ts", "thread_ts"),
         snippet=snippet,
@@ -122,7 +130,9 @@ def recall(
             json={
                 "query": query,
                 "channel_types": channel_types or DEFAULT_CHANNEL_TYPES,
-                "limit": max(limit, 20),  # over-fetch, then we rank + trim deterministically
+                "limit": max(
+                    limit, 20
+                ),  # over-fetch, then we rank + trim deterministically
             },
         )
     except SlackApiError as e:
@@ -138,17 +148,22 @@ def recall(
 
     hits = [_to_hit(r, query) for r in _extract_results(resp.data)]
     hits = [
-        h for h in hits
+        h
+        for h in hits
         if h.snippet.strip() and not _is_deja_card(h.snippet) and h.ts != exclude_ts
     ]
     # Deterministic ranking (Python sort is stable; apply least-significant key first):
-    hits.sort(key=lambda h: h.ts, reverse=True)            # 3rd: newest
-    hits.sort(key=lambda h: h.reply_count, reverse=True)   # 2nd: a discussed thread beats a lone line
-    hits.sort(key=lambda h: h.score, reverse=True)         # 1st: query overlap
+    hits.sort(key=lambda h: h.ts, reverse=True)  # 3rd: newest
+    hits.sort(
+        key=lambda h: h.reply_count, reverse=True
+    )  # 2nd: a discussed thread beats a lone line
+    hits.sort(key=lambda h: h.score, reverse=True)  # 1st: query overlap
     return hits[:limit]
 
 
 def debug_search(query: str, *, token: str | None = None) -> dict:
     """Return the raw RTS response — use once to validate the real field names/shape."""
     client = WebClient(token=_resolve_token(token))
-    return client.api_call(RTS_METHOD, json={"query": query, "channel_types": DEFAULT_CHANNEL_TYPES}).data
+    return client.api_call(
+        RTS_METHOD, json={"query": query, "channel_types": DEFAULT_CHANNEL_TYPES}
+    ).data

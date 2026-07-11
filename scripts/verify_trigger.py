@@ -8,13 +8,16 @@ Proves two things at once: (1) the Claude Agent SDK authenticates via the subscr
 Auth: set CLAUDE_CODE_OAUTH_TOKEN in .env (from `claude setup-token`), or rely on a logged-in
 `claude` CLI. Then:  python scripts/verify_trigger.py
 """
+
 from __future__ import annotations
 
 import asyncio
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))  # repo root -> import deja
+sys.path.insert(
+    0, str(pathlib.Path(__file__).resolve().parent.parent)
+)  # repo root -> import deja
 
 from dotenv import load_dotenv  # noqa: E402
 
@@ -37,12 +40,16 @@ async def main() -> int:
         d = await judge(message)
         ok = d.should_recall == expected
         correct += ok
-        print(f"[{'✓' if ok else '✗'}] recall={d.should_recall!s:5} (want {expected!s:5}) "
-              f"| query={d.query!r} | {d.reason}")
+        print(
+            f"[{'✓' if ok else '✗'}] recall={d.should_recall!s:5} (want {expected!s:5}) "
+            f"| query={d.query!r} | {d.reason}"
+        )
         print(f"      msg: {message!r}")
     passed = correct == len(CASES)
-    print(f"\nTRIGGER JUDGMENT: {correct}/{len(CASES)} correct  ->  "
-          f"{'PASS ✅ (LLM works via subscription auth)' if passed else 'FAIL ❌'}")
+    print(
+        f"\nTRIGGER JUDGMENT: {correct}/{len(CASES)} correct  ->  "
+        f"{'PASS ✅ (LLM works via subscription auth)' if passed else 'FAIL ❌'}"
+    )
     return 0 if passed else 1
 
 

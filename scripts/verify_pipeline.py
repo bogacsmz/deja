@@ -7,6 +7,7 @@ A triggering message must resurface the seeded thread's permalink; small talk mu
 Prereqs: seeded workspace (scripts/seed_deja.py), SLACK_USER_TOKEN in .env, Max-authed claude.
 Run:  python scripts/verify_pipeline.py
 """
+
 from __future__ import annotations
 
 import asyncio
