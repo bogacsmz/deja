@@ -8,6 +8,7 @@ caller (a Slack event, or an external agent via MCP) decides *when* to ask and *
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 
@@ -16,6 +17,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 from deja.recall import recall
 from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
+_log = logging.getLogger(__name__)
 _MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
 
 
@@ -46,6 +48,7 @@ async def recall_memories(
     try:
         hits = await asyncio.to_thread(recall, query, limit=max(limit, 5))
     except Exception as e:  # noqa: BLE001 — surface as a clean summary, never throw to the client
+        _log.warning("memory: recall failed for %r: %s", query, e)
         return _result(f"Search failed: {e}", [], query)
 
     if channel:
@@ -57,7 +60,7 @@ async def recall_memories(
         scope = f" in #{channel.lstrip('#')}" if channel else ""
         return _result(f"No prior discussion found{scope} for “{query}”.", [], query)
 
-    client = AsyncWebClient(token=token)
+    client = AsyncWebClient(token=token, timeout=15)
     memories: list[dict] = []
     for h in hits:
         decision = ""
@@ -69,7 +72,8 @@ async def recall_memories(
                 continue  # stale ghost: RTS returned a message that has since been deleted
             found = pick_decision(msgs)
             decision = found[0] if found else ""
-        except Exception:  # noqa: BLE001 — enrichment is best-effort; keep the memory without a decision
+        except Exception as e:  # noqa: BLE001 — enrichment is best-effort; keep the memory as-is
+            _log.debug("memory: enrichment failed for %s: %s", h.ts, e)
             decision = ""
         memories.append(
             {

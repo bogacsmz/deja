@@ -17,6 +17,7 @@ No LLM here: the query is passed in verbatim (Phase 3 will generate it from a ch
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Any
@@ -25,6 +26,8 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from deja.models import Hit
+
+_log = logging.getLogger(__name__)
 
 RTS_METHOD = "assistant.search.context"
 DEFAULT_CHANNEL_TYPES = ["public_channel", "private_channel", "mpim", "im"]
@@ -123,7 +126,7 @@ def recall(
     `exclude_ts` drops the triggering message itself (so a fresh "should we do X?" doesn't recall
     *itself*). Déjà's own cards and empty-content hits are always filtered out.
     """
-    client = WebClient(token=_resolve_token(token))
+    client = WebClient(token=_resolve_token(token), timeout=15)
     try:
         resp = client.api_call(
             RTS_METHOD,
@@ -138,6 +141,7 @@ def recall(
     except SlackApiError as e:
         err = (e.response.data or {}).get("error")
         needed = (e.response.data or {}).get("needed")
+        _log.warning("recall: RTS call failed: %s (needed=%s)", err, needed)
         raise RuntimeError(
             f"RTS call failed: {err}"
             + (f" (needed scope: {needed})" if needed else "")
@@ -163,7 +167,7 @@ def recall(
 
 def debug_search(query: str, *, token: str | None = None) -> dict:
     """Return the raw RTS response — use once to validate the real field names/shape."""
-    client = WebClient(token=_resolve_token(token))
+    client = WebClient(token=_resolve_token(token), timeout=15)
     return client.api_call(
         RTS_METHOD, json={"query": query, "channel_types": DEFAULT_CHANNEL_TYPES}
     ).data

@@ -11,6 +11,7 @@ formatting is Phase 4; this is deliberately plain text.
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 
 from deja.card import build_memory_card
@@ -18,6 +19,7 @@ from deja.recall import recall
 from deja.thread import fetch_decision
 from deja.trigger import judge
 
+_log = logging.getLogger(__name__)
 _SEED_MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
 
 
@@ -68,7 +70,8 @@ async def recall_card(
     outcome = None
     try:
         outcome = await fetch_decision(client, top.channel_id, top.ts)
-    except Exception:  # enrichment is best-effort — a card without it is still useful
+    except Exception as e:  # noqa: BLE001 — enrichment is best-effort; a card without it still helps
+        _log.debug("recall_card: decision enrichment failed for %s: %s", top.ts, e)
         outcome = None
 
     blocks, fallback = build_memory_card(decision.query, top, outcome)

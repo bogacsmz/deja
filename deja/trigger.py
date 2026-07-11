@@ -15,6 +15,7 @@ event handlers (auto-trigger on channel messages) is the rest of Phase 3.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 
@@ -42,9 +43,18 @@ class TriggerDecision:
     reason: str
 
 
+_log = logging.getLogger(__name__)
+
+
 def _parse(text: str) -> TriggerDecision:
-    match = re.search(r"\{.*\}", text, re.S)
-    data = json.loads(match.group(0)) if match else {}
+    try:
+        match = re.search(r"\{.*\}", text, re.S)
+        data = json.loads(match.group(0)) if match else {}
+    except (ValueError, json.JSONDecodeError):
+        _log.warning(
+            "trigger: model output was not valid JSON; defaulting to no-recall"
+        )
+        data = {}
     return TriggerDecision(
         should_recall=bool(data.get("should_recall", False)),
         query=str(data.get("query") or "").strip(),
@@ -60,11 +70,15 @@ async def judge(message: str) -> TriggerDecision:
         allowed_tools=[],  # pure judgment, no tools
     )
     text = ""
-    async with ClaudeSDKClient(options) as client:
-        await client.query(message)
-        async for msg in client.receive_response():
-            if isinstance(msg, AssistantMessage):
-                for block in msg.content:
-                    if isinstance(block, TextBlock):
-                        text += block.text
+    try:
+        async with ClaudeSDKClient(options) as client:
+            await client.query(message)
+            async for msg in client.receive_response():
+                if isinstance(msg, AssistantMessage):
+                    for block in msg.content:
+                        if isinstance(block, TextBlock):
+                            text += block.text
+    except Exception as e:  # noqa: BLE001 — LLM/auth/transport failure -> fail safe, don't trigger
+        _log.warning("trigger: judge unavailable (%s); defaulting to no-recall", e)
+        return TriggerDecision(False, "", "judge unavailable")
     return _parse(text)
