@@ -1,5 +1,7 @@
 # Déjà — the team memory that stops you re-litigating decisions
 
+> **Déjà doesn't just remember what your team decided. It stops them from deciding it again.**
+
 When a decision, claim, or proposal comes up in a Slack channel, **Déjà** quietly surfaces the
 concrete past thread your team already had on it — **and what was decided** — as a clean Block Kit
 memory card. Its memory is also a standalone **MCP tool** any external agent can call.

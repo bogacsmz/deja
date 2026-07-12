@@ -60,6 +60,16 @@ def test_settled_card_timeline_rows_are_clickable_buttons():
     )
 
 
+def test_ask_owner_button_only_when_owner_resolved():
+    """The 'Ask the decision owner' button appears only when we resolved a real user id — never a
+    fake @-mention."""
+    arc = _rollback_arc()
+    with_uid, _ = build_arc_card("temporal", arc, owner_uid="U123ABC")
+    without, _ = build_arc_card("temporal", arc)  # no owner_uid
+    assert "deja_ask_owner" in json.dumps(with_uid)
+    assert "deja_ask_owner" not in json.dumps(without)
+
+
 def test_inconclusive_card_has_no_save_button_and_says_inconclusive():
     arc = build_arc(
         "x", [_m("1", source="should we use X?"), _m("2", source="still unsure")]

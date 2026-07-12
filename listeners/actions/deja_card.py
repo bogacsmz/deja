@@ -59,6 +59,39 @@ async def handle_save_decision(
         logger.exception(f"Failed to save decision: {e}")
 
 
+def _ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+async def handle_ask_owner(ack: Ack, body: dict, client: AsyncWebClient, logger: Logger):
+    """'🗣️ Ask the decision owner' — Déjà stops merely reminding and starts COORDINATING: it drops a
+    short nudge in the thread, @-mentioning whoever made the call, with the standing decision + when."""
+    await ack()
+    try:
+        rec = json.loads((body.get("actions") or [{}])[0].get("value", "") or "{}")
+        uid = rec.get("uid", "")
+        mention = f"<@{uid}>" if uid else (rec.get("owner") or "the owner")
+        at = rec.get("at", "")
+        when = f" on {at}" if at else ""
+        nth = _ordinal(int(rec.get("n") or 1))
+        dec = rec.get("dec", "")
+        text = (
+            f"{mention} — this came up again ({nth} time). You made the call{when} "
+            f"(_{dec}_). Still stands, or should we reopen it?"
+        )
+        channel = body["channel"]["id"]
+        msg = body.get("message", {})
+        thread_ts = msg.get("thread_ts") or msg.get("ts")
+        await client.chat_postMessage(channel=channel, thread_ts=thread_ts, text=text)
+        logger.info(f"deja_ask_owner: nudged {mention} ({nth} time)")
+    except Exception as e:
+        logger.exception(f"Failed to ask the decision owner: {e}")
+
+
 async def handle_open_thread(ack: Ack):
     """'🔗 Open source thread' is a URL button — Slack opens the permalink itself; we just ack
     so Slack doesn't show an 'app didn't respond' warning."""

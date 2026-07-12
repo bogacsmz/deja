@@ -1,7 +1,7 @@
 # Déjà — Submission
 
 > **Slack Agent Builder Challenge · Track: New Slack Agent**
-> The team memory that stops you re-litigating decisions you already made.
+> **Déjà doesn't just remember what your team decided. It stops them from deciding it again.**
 
 ## The problem
 

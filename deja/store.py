@@ -29,6 +29,18 @@ def decision_headline(decision: str, n: int = 68) -> str:
     return head if len(head) <= n else head[:n].rstrip(" ,;—-") + "…"
 
 
+def decision_rationale(decision: str, n: int = 118) -> str:
+    """The WHY behind a decision — the sentence(s) AFTER the first (which states the decision itself),
+    so a headline and its quote don't just repeat each other. Trimmed on a word boundary (never
+    mid-word); '' when the decision is a single sentence (no separate rationale to show)."""
+    t = _LEAD.sub("", (decision or "").strip())
+    rest = " ".join(re.split(r"(?<=[.!?])\s+", t)[1:]).strip()
+    rest = " ".join(rest.split())
+    if not rest:
+        return ""
+    return rest if len(rest) <= n else rest[:n].rsplit(" ", 1)[0].rstrip(" ,;—-") + "…"
+
+
 def _path() -> pathlib.Path:
     return pathlib.Path(os.environ.get("DEJA_STORE", "deja_decisions.json"))
 
@@ -83,6 +95,20 @@ def list_decisions() -> list[dict]:
     return sorted(
         _load()["decisions"].values(), key=lambda d: d.get("saved_at", 0), reverse=True
     )
+
+
+def relitigation_stats() -> dict:
+    """Aggregate the 're-opened decision' pattern from the store — the App Home hero. A decision is
+    'relitigated' when it was discussed 2+ times. Returns real counts (never invented): how many came
+    back, total times raised, distinct channels, and the most-repeated few (each clickable)."""
+    recurring = [d for d in list_decisions() if d.get("times_discussed", 0) >= 2]
+    recurring.sort(key=lambda d: d.get("times_discussed", 0), reverse=True)
+    return {
+        "count": len(recurring),
+        "total": sum(d.get("times_discussed", 0) for d in recurring),
+        "channels": len({d.get("channel", "") for d in recurring if d.get("channel")}),
+        "top": recurring[:3],
+    }
 
 
 def count_saved_since(days: float = 7) -> int:

@@ -15,16 +15,64 @@ _TRY_THESE = (
 )
 
 
+def _short_topic(t: str, n: int = 26) -> str:
+    t = " ".join((t or "Decision").split())
+    return t if len(t) <= n else t[: n - 1].rstrip() + "…"
+
+
 def _metrics_blocks() -> list[dict]:
-    """Reserved for Part 2 (the 'decisions circled back' metric). Empty for now — kept as its own
-    function and slot so adding the block later doesn't touch the rest of Home."""
-    return []
+    """The hero: how often the team re-opens settled decisions — Déjà as an organizational-health
+    signal, not just a memory. Real numbers from the store; honest empty state when there's too
+    little history to claim a pattern."""
+    from deja.store import relitigation_stats
+
+    s = relitigation_stats()
+    if s["count"] < 1:
+        return [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "🔁  *No decisions have come back up yet.*\nI'll surface the re-litigation pattern here as your team revisits settled calls.",
+                },
+            }
+        ]
+    top = s["top"][0]
+    most = f'most-repeated: *"{top.get("topic", "")}"* ({top.get("times_discussed", 0)}×)'
+    blocks: list[dict] = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"🔁  *Your team keeps re-opening settled decisions.*\n"
+                f"*{s['count']}* decisions have come back up  ·  *{s['total']}×* raised in total  ·  "
+                f"*{s['channels']}* channels  ·  {most}",
+            },
+        }
+    ]
+    btns = []
+    for d in s["top"]:
+        b: dict = {
+            "type": "button",
+            "action_id": "deja_open_thread",
+            "text": {
+                "type": "plain_text",
+                "text": f"🔁 {_short_topic(d.get('topic', ''))} · {d.get('times_discussed', 0)}×",
+                "emoji": True,
+            },
+        }
+        if (d.get("url") or "").startswith("http"):
+            b["url"] = d["url"]
+        btns.append(b)
+    if btns:
+        blocks.append({"type": "actions", "elements": btns})
+    return blocks
 
 
 def _recent_decisions_blocks() -> list[dict]:
     """The heart of Home: the decisions the team has on record, each row linking to its source thread.
     Reads the canonical store (seeded from the team's arcs + grown by the 💾 Save button)."""
-    from deja.store import decision_headline, list_decisions
+    from deja.store import decision_headline, decision_rationale, list_decisions
 
     decisions = list_decisions()
     blocks: list[dict] = [
@@ -47,23 +95,26 @@ def _recent_decisions_blocks() -> list[dict]:
     for d in decisions[:5]:
         icon = d.get("icon") or "✅"
         headline = d.get("headline") or decision_headline(d.get("decision", ""))
+        n = d.get("times_discussed", 0)
+        # line 2: attribution + how often it's come up (no "1×" for a one-off)
         meta = "  ·  ".join(
             x
             for x in (
-                f"_{d['owner']}_" if d.get("owner") else "",
+                d.get("owner", ""),
                 d.get("at", ""),
                 f"#{d['channel']}" if d.get("channel") else "",
+                f"_discussed {n}×_" if n >= 2 else "",
             )
             if x
         )
-        quote = _quote(d.get("decision", ""))
-        row: dict = {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"{icon}  *{headline}*\n{meta}\n_{quote}_" if meta else f"{icon}  *{headline}*\n_{quote}_",
-            },
-        }
+        # line 3: the RATIONALE — the 'why', not a restatement of the headline
+        rationale = decision_rationale(d.get("decision", ""))
+        text = f"{icon}  *{headline}*"
+        if meta:
+            text += f"\n{meta}"
+        if rationale:
+            text += f"\n_“{rationale}”_"
+        row: dict = {"type": "section", "text": {"type": "mrkdwn", "text": text}}
         if (d.get("url") or "").startswith("http"):
             row["accessory"] = {
                 "type": "button",
@@ -105,11 +156,6 @@ def _footer_blocks() -> list[dict]:
             ],
         }
     ]
-
-
-def _quote(text: str, n: int = 140) -> str:
-    text = " ".join((text or "").split())
-    return text if len(text) <= n else text[:n].rstrip() + "…"
 
 
 def build_app_home_view(

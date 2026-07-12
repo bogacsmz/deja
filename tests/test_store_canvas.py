@@ -22,6 +22,26 @@ _REC = {
 }
 
 
+def test_relitigation_stats_counts_only_recurring(tmp_path, monkeypatch):
+    store = _fresh_store(tmp_path, monkeypatch)
+    store.save_decision({"topic": "Temporal", "decision": "d", "n": 4, "channel": "eng"})
+    store.save_decision({"topic": "Datadog", "decision": "d", "n": 2, "channel": "ops"})
+    store.save_decision({"topic": "Auth", "decision": "d", "n": 1, "channel": "eng"})  # one-off
+    s = store.relitigation_stats()
+    assert s["count"] == 2  # only the 2 that recurred (n>=2)
+    assert s["total"] == 6 and s["channels"] == 2
+    assert s["top"][0]["topic"] == "Temporal"  # most-repeated first
+
+
+def test_decision_rationale_gives_the_why_not_the_headline(tmp_path, monkeypatch):
+    store = _fresh_store(tmp_path, monkeypatch)
+    d = "Decision: we're going with Postgres, not Mongo. JSONB gives us the flexibility we wanted."
+    assert store.decision_headline(d).startswith("we're going with Postgres")
+    r = store.decision_rationale(d)
+    assert "JSONB" in r and "Postgres, not Mongo" not in r  # the reason, not a repeat
+    assert store.decision_rationale("Decided: single sentence only.") == ""  # no separate rationale
+
+
 def test_save_list_and_weekly_count(tmp_path, monkeypatch):
     store = _fresh_store(tmp_path, monkeypatch)
     store.save_decision(_REC, saved_by="U1")

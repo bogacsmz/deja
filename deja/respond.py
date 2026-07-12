@@ -17,6 +17,7 @@ import re
 from deja.arc import recall_arc
 from deja.card import build_arc_card
 from deja.conflict import detect_conflict
+from deja.owner import resolve_owner_id
 from deja.recall import RateLimitedError, recall
 from deja.trigger import judge
 
@@ -86,6 +87,11 @@ async def recall_card(
     await _status(
         f":books: _Found {arc.times_discussed} related thread(s) — reconstructing…_"
     )
+    # Resolve the decision owner to a real user so we can offer to ping them. Empty (no real match)
+    # → the card simply won't show the ask button. Cached workspace lookup, so it's cheap.
+    owner_uid = ""
+    if not arc.inconclusive and arc.owner:
+        owner_uid = await resolve_owner_id(client, arc.owner)
     warning = detect_conflict(text, arc)
-    blocks, fallback = build_arc_card(decision.query, arc, warning)
+    blocks, fallback = build_arc_card(decision.query, arc, warning, owner_uid=owner_uid)
     return {"blocks": blocks, "text": fallback}

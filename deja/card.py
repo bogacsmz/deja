@@ -169,8 +169,25 @@ def _save_value(query: str, arc: DecisionArc) -> str:
     )
 
 
+def _ask_value(arc: DecisionArc, owner_uid: str) -> str:
+    """Payload the 'Ask the decision owner' button hands to its handler."""
+    return json.dumps(
+        {
+            "uid": owner_uid,
+            "owner": arc.owner[:80],
+            "at": arc.decided_at[:24],
+            "n": arc.times_discussed,
+            "dec": _short(arc.standing_decision, 150),
+        },
+        ensure_ascii=False,
+    )
+
+
 def build_arc_card(
-    query: str, arc: DecisionArc, warning: ConflictWarning | None = None
+    query: str,
+    arc: DecisionArc,
+    warning: ConflictWarning | None = None,
+    owner_uid: str = "",
 ) -> tuple[list[dict], str]:
     """Block Kit card for a synthesized decision ARC. Visual hierarchy: the standing decision is the
     HERO (top, bold), the timeline is secondary (each row a clickable link to its thread), and the
@@ -283,6 +300,21 @@ def build_arc_card(
                     "emoji": True,
                 },
                 "value": _save_value(query, arc),
+            }
+        )
+    # Coordination: ping the person who made the call — but only if we resolved them to a real user
+    # (owner_uid empty → hide the button, never a fake @-mention).
+    if settled and owner_uid:
+        actions.append(
+            {
+                "type": "button",
+                "action_id": "deja_ask_owner",
+                "text": {
+                    "type": "plain_text",
+                    "text": "🗣️ Ask the decision owner",
+                    "emoji": True,
+                },
+                "value": _ask_value(arc, owner_uid),
             }
         )
     if arc.sources:
