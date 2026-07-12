@@ -14,7 +14,7 @@ import re
 
 from slack_sdk.web.async_client import AsyncWebClient
 
-from deja.recall import recall
+from deja.recall import _addressed_to_deja, _is_deja_card, recall
 from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
 _log = logging.getLogger(__name__)
@@ -102,6 +102,12 @@ async def recall_memories(
             if not is_thread_alive(msgs):
                 continue  # stale ghost: RTS returned a message that has since been deleted
             parent = msgs[0]
+            parent_text = parent.get("text", "")
+            # A question ADDRESSED to Déjà, or Déjà's own card, is not team discussion — drop it so
+            # it never counts toward "discussed N×" (RTS may hand us these via a reply/card snippet
+            # whose parent carries the @-mention).
+            if _addressed_to_deja(parent_text) or _is_deja_card(parent_text):
+                continue
             root_ts = parent.get("ts") or h.ts
             found = pick_decision(msgs, require_decision=True)
             decision = found[0] if found else ""
