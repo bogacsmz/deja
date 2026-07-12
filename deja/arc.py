@@ -142,7 +142,9 @@ def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
     scored.sort(key=lambda x: x[0])  # chronological by content date (ts fallback)
     events = [e for _, e in scored]
 
-    decisions = [e for e in events if e.is_decision]
+    # Grounding invariant: a standing decision must be a GENUINE decision (is_decision) AND SOURCED
+    # (clickable permalink). No permalink -> we can't prove it -> it doesn't get to be the answer.
+    decisions = [e for e in events if e.is_decision and e.permalink]
     if decisions:
         standing = decisions[-1]  # the most recent decision is the one in force
         confidence, standing_decision = "high", standing.summary
@@ -276,13 +278,21 @@ _SUBJECT_RE = re.compile(
 
 
 def _query_subjects(query: str) -> list[str]:
-    """Specific product/proper-noun names in the query (Temporal, Kafka, CockroachDB, Postgres).
-
-    The subject guard: if the question names such a product, the answer must be about THAT product —
-    so a query for a never-discussed product ('CockroachDB', 'Kafka') can't be answered with a
-    different product's decision after expansion. Descriptive queries ('observability stack') have no
-    subject and expand freely."""
+    """Specific product/proper-noun names in the query (Temporal, Kafka, CockroachDB, Postgres)."""
     return [t for t in _SUBJECT_RE.findall(query) if t.lower() not in _STOP]
+
+
+def _primary_terms(query: str) -> list[str]:
+    """The query's topic anchor(s) that a grounded standing decision must be about: the named
+    product(s) if any, else the single most distinctive word. Errs toward INCONCLUSIVE — better
+    silent than a confident answer drawn from an off-topic thread."""
+    subjects = _query_subjects(query)
+    if subjects:
+        return subjects
+    words = sorted(
+        {w for w in _ANCHOR_WORD.findall(query.lower())} - _STOP, key=lambda w: (-len(w), w)
+    )
+    return words[:1]
 
 
 async def _cluster(query, base, terms, limit, recall_fn, thread_fn):
@@ -358,12 +368,13 @@ async def recall_arc(
                     query, base, terms, limit, recall_fn, thread_fn
                 )
 
-    # Subject guard: when the query names a specific product, keep ONLY the threads about it and
-    # rebuild — so an off-topic thread pulled in by a generic anchor ("migration" → the monorepo
-    # decision) can't become the standing decision. If nothing is on the named topic, claim nothing.
-    subjects = _query_subjects(query)
-    if subjects and arc is not None:
-        on_topic = [m for m in memories if _on_topic(m, subjects)]
+    # Grounding filter (topic match): keep ONLY threads about the query's primary term(s) and rebuild,
+    # so an off-topic thread pulled in by a generic anchor ("migration" → the monorepo decision) can't
+    # become the standing decision. If nothing is on-topic, we claim nothing (INCONCLUSIVE), never a
+    # guess. build_arc then enforces the rest (genuine + sourced decision).
+    primary = _primary_terms(query)
+    if primary and arc is not None:
+        on_topic = [m for m in memories if _on_topic(m, primary)]
         memories = on_topic
         arc = build_arc(query, memories) if on_topic else None
 
