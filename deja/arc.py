@@ -12,6 +12,7 @@ convenience that feeds it from `recall_memories`.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import re
 from dataclasses import dataclass
@@ -377,10 +378,13 @@ async def _cluster(query, base, terms, limit, recall_fn, thread_fn):
 
     memories = list(base)
     seen = {m.get("ts") for m in memories}
-    for term in terms[:4]:  # bound the extra recall calls
-        more = await recall_memories(
-            term, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
+    more_results = await asyncio.gather(  # bound the extra recalls AND fire them concurrently
+        *(
+            recall_memories(term, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn)
+            for term in terms[:4]
         )
+    )
+    for more in more_results:
         for m in more.get("memories", []):
             if m.get("ts") not in seen:
                 memories.append(m)
@@ -463,22 +467,23 @@ async def recall_arc(
         if canon is not None:
             return canon
 
-    base = (
-        await recall_memories(
-            query, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
-        )
-    ).get("memories", [])
-
     # Multi-query: if the query NAMES products, also recall by each name directly. The judge's phrasing
     # may lead retrieval to an incidental word ('Datadog billing' → the pricing thread); a recall on
     # 'Datadog' pulls the actual Datadog threads. The grounding filter below then keeps the on-topic
-    # ones. RTS-only, bounded.
+    # ones. RTS-only, bounded — and fired CONCURRENTLY (base + subjects together) so the extra recalls
+    # cost ~0 wall-clock instead of serializing another RTS round-trip each.
+    subjects = _query_subjects(query)[:2]
+    results = await asyncio.gather(
+        recall_memories(query, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn),
+        *(
+            recall_memories(s, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn)
+            for s in subjects
+        ),
+    )
+    base = list(results[0].get("memories", []))
     seen = {m.get("ts") for m in base}
-    for subj in _query_subjects(query)[:2]:
-        more = await recall_memories(
-            subj, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
-        )
-        for m in more.get("memories", []):
+    for r in results[1:]:
+        for m in r.get("memories", []):
             if m.get("ts") not in seen:
                 base.append(m)
                 seen.add(m.get("ts"))

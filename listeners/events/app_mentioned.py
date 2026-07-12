@@ -1,4 +1,3 @@
-import asyncio
 import re
 from logging import Logger
 
@@ -36,10 +35,10 @@ async def handle_app_mentioned(
     ch, ts = status["channel"], status["ts"]
 
     async def on_status(msg: str) -> None:
+        # Update the status line in place — no artificial sleep; the instant "Searching…" above is
+        # already visible during the (real) judge + search wait, and the card follows as soon as it's
+        # ready. Padding this path with sleeps just made the jury wait longer.
         await client.chat_update(channel=ch, ts=ts, text=msg)
-        await asyncio.sleep(
-            0.4
-        )  # let each stage register in the thread before the next
 
     try:
         card = await recall_card(

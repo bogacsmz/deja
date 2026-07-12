@@ -68,7 +68,8 @@ async def recall_card(
         if on_status:
             await on_status(msg)
 
-    await _status(":mag: _Searching your workspace…_")
+    # NB: the caller (app_mention handler) already posted the instant "Searching your workspace…"
+    # status before calling us, so we don't re-emit it here — that just burned a Slack round-trip.
     decision = await judge(text)
     if not decision.should_recall or not decision.query:
         return None
@@ -82,8 +83,9 @@ async def recall_card(
     if arc is None or (arc.inconclusive and not arc.is_recurring):
         return None  # nothing found, or just a single unresolved proposal — stay quiet
 
-    await _status(f":books: _Found {arc.times_discussed} related thread(s)…_")
-    await _status(":jigsaw: _Reconstructing the decision…_")
+    await _status(
+        f":books: _Found {arc.times_discussed} related thread(s) — reconstructing…_"
+    )
     warning = detect_conflict(text, arc)
     blocks, fallback = build_arc_card(decision.query, arc, warning)
     return {"blocks": blocks, "text": fallback}

@@ -70,6 +70,11 @@ class TriggerDecision:
 
 _log = logging.getLogger(__name__)
 
+# Judge model: default to the SDK's default (best accuracy for the classification). Overridable via
+# env if a smaller/faster alias is ever wanted — but measurement showed the win is in startup, not
+# the model. Empty/unset -> None -> SDK default.
+_JUDGE_MODEL = os.environ.get("DEJA_JUDGE_MODEL") or None
+
 
 def _parse(text: str) -> TriggerDecision:
     try:
@@ -87,19 +92,30 @@ def _parse(text: str) -> TriggerDecision:
     )
 
 
+_OPTIONS = ClaudeAgentOptions(
+    system_prompt=_SYSTEM,
+    permission_mode="bypassPermissions",
+    allowed_tools=[],  # pure judgment, no tools
+    model=_JUDGE_MODEL,  # None -> the SDK default (measured: switching to Haiku barely moved the
+    # needle since STARTUP, not inference, dominates — and it produced worse queries; not worth it)
+    # Startup, not inference, dominated the judge latency: the CLI was loading the developer's whole
+    # ~/.claude environment (many MCP servers + settings files) on every call. This is a zero-tool
+    # classifier — load NONE of it (output-identical, ~1s faster). Auth still comes from the env token.
+    mcp_servers={},
+    strict_mcp_config=True,  # ignore the user's global MCP config, don't spawn those servers
+    setting_sources=[],  # don't read settings.json / CLAUDE.md / project config
+    max_turns=1,
+)
+
+
 async def judge(message: str) -> TriggerDecision:
     """Return Déjà's judgment on whether `message` warrants a recall (+ a search query)."""
     if message in _CACHE:
         c = _CACHE[message]
         return TriggerDecision(c["should_recall"], c["query"], c["reason"])
-    options = ClaudeAgentOptions(
-        system_prompt=_SYSTEM,
-        permission_mode="bypassPermissions",
-        allowed_tools=[],  # pure judgment, no tools
-    )
     text = ""
     try:
-        async with ClaudeSDKClient(options) as client:
+        async with ClaudeSDKClient(_OPTIONS) as client:
             await client.query(message)
             async for msg in client.receive_response():
                 if isinstance(msg, AssistantMessage):

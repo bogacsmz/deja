@@ -98,22 +98,33 @@ async def recall_memories(
         return _result(f"No prior discussion found{scope} for “{query}”.", [], query)
 
     client = AsyncWebClient(token=token, timeout=15) if token else None
+
+    # Snippet-level guard first (cheap, no API): drop @Deja questions + Déjà's own cards up front.
+    candidates = [
+        h
+        for h in hits
+        if not (_addressed_to_deja(h.snippet) or _is_deja_card(h.snippet))
+    ][: max(limit * 3, 12)]
+
+    # Enrich every candidate's thread (conversations.replies) IN PARALLEL — this was the dominant
+    # serial cost (N sequential ~250ms round-trips). We over-fetch candidates and cap memories at
+    # `limit` after dedupe/filtering below, so a few extra parallel fetches are cheap.
+    fetched = await asyncio.gather(
+        *(_thread(client, h.channel_id, h.ts) for h in candidates),
+        return_exceptions=True,
+    )
+
     memories: list[dict] = []
     seen_roots: set[str] = set()
-    for h in hits:
+    for h, msgs in zip(candidates, fetched):
         if len(memories) >= limit:
             break
-        # First-line guard on the RTS snippet itself: a hit whose snippet is an @Deja question or
-        # one of Déjà's own cards is never team discussion. Checked here too (not just on the fetched
-        # parent) so it's dropped even if thread enrichment below fails — never leaking into the
-        # timeline or the "discussed N×" count.
-        if _addressed_to_deja(h.snippet) or _is_deja_card(h.snippet):
-            continue
         decision, author, source, root_ts = "", h.author, _clean(h.snippet), h.ts
-        try:
-            msgs = await _thread(client, h.channel_id, h.ts)  # reply-aware
-            if not is_thread_alive(msgs):
-                continue  # stale ghost: RTS returned a message that has since been deleted
+        if isinstance(msgs, BaseException):
+            _log.debug("memory: enrichment failed for %s: %s", h.ts, msgs)
+        elif not is_thread_alive(msgs):
+            continue  # stale ghost: RTS returned a message that has since been deleted
+        else:
             parent = msgs[0]
             parent_text = parent.get("text", "")
             # A question ADDRESSED to Déjà, or Déjà's own card, is not team discussion — drop it so
@@ -131,8 +142,6 @@ async def recall_memories(
             source = (
                 _clean(parent.get("text", "")) or source
             )  # canonical = the thread's parent
-        except Exception as e:  # noqa: BLE001 — enrichment is best-effort; keep the raw hit
-            _log.debug("memory: enrichment failed for %s: %s", h.ts, e)
         if root_ts in seen_roots:
             continue  # same thread reached via a second hit (parent + reply both matched)
         seen_roots.add(root_ts)
