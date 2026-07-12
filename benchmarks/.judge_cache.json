@@ -638,5 +638,120 @@
   "should_recall": true,
   "query": "Kubernetes YAML JSON manifests",
   "reason": "technical proposal worth checking past discussion"
+ },
+ "Proposing we add a usage add-on for heavy accounts.": {
+  "should_recall": true,
+  "query": "usage add-on heavy accounts",
+  "reason": "product pricing proposal"
+ },
+ "Opening a PR to migrate the job queue to Temporal.": {
+  "should_recall": true,
+  "query": "Temporal job queue migration",
+  "reason": "proposal about past technical decision"
+ },
+ "Should we adopt an RFC process for big decisions?": {
+  "should_recall": true,
+  "query": "RFC process big decisions",
+  "reason": "proposal worth checking prior discussion"
+ },
+ "Let's switch our monitoring over to Datadog.": {
+  "should_recall": true,
+  "query": "Datadog monitoring migration",
+  "reason": "proposal to change monitoring tooling"
+ },
+ "We should move pricing to pure usage-based billing.": {
+  "should_recall": true,
+  "query": "usage-based billing pricing",
+  "reason": "pricing model proposal likely discussed before"
+ },
+ "Proposing we standardize the datastore on MongoDB.": {
+  "should_recall": true,
+  "query": "MongoDB datastore standardization",
+  "reason": "proposal worth checking past discussion"
+ },
+ "Let's self-host our own Kubernetes cluster.": {
+  "should_recall": true,
+  "query": "self-hosted Kubernetes cluster",
+  "reason": "past infra proposal/decision"
+ },
+ "We should build our own auth in-house.": {
+  "should_recall": true,
+  "query": "in-house auth build",
+  "reason": "past build-vs-buy proposal worth surfacing"
+ },
+ "Let's standardize the UI on MUI as our component library.": {
+  "should_recall": true,
+  "query": "MUI component library",
+  "reason": "proposal to standardize UI framework"
+ },
+ "Proposing a public GA launch this quarter.": {
+  "should_recall": true,
+  "query": "GA launch timeline",
+  "reason": "proposal worth checking past discussion"
+ },
+ "Let's keep the job queue on Redis.": {
+  "should_recall": true,
+  "query": "Redis job queue",
+  "reason": "past decision/proposal on job queue tech"
+ },
+ "We'll use Postgres as the primary datastore.": {
+  "should_recall": true,
+  "query": "Postgres primary datastore",
+  "reason": "technical decision worth checking prior discussion"
+ },
+ "Let's keep shipping continuous deploy on merge to main.": {
+  "should_recall": true,
+  "query": "continuous deploy main",
+  "reason": "proposal about deploy process worth checking past discussion"
+ },
+ "Standardize styling on Tailwind and Radix.": {
+  "should_recall": true,
+  "query": "Tailwind Radix styling",
+  "reason": "proposal to standardize on a tech stack"
+ },
+ "Use managed ECS Fargate for the new services.": {
+  "should_recall": true,
+  "query": "ECS Fargate",
+  "reason": "technical proposal worth checking prior discussion"
+ },
+ "Should we adopt GraphQL for the public API?": {
+  "should_recall": true,
+  "query": "GraphQL public API",
+  "reason": "past technical proposal/decision worth recalling"
+ },
+ "Let's migrate our event bus to Kafka.": {
+  "should_recall": true,
+  "query": "Kafka event bus migration",
+  "reason": "past technical proposal/decision"
+ },
+ "Proposing we rewrite the billing service in Rust.": {
+  "should_recall": true,
+  "query": "billing service Rust rewrite",
+  "reason": "architecture proposal worth checking prior discussion"
+ },
+ "Should we adopt Terraform for infrastructure?": {
+  "should_recall": true,
+  "query": "Terraform infrastructure",
+  "reason": "past infra tooling decision worth surfacing"
+ },
+ "Did we decide to buy a boat for the offsite?": {
+  "should_recall": true,
+  "query": "boat offsite",
+  "reason": "past decision/claim to verify"
+ },
+ "Are we migrating the office to Mars?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "playful/absurd question, not a real proposal"
+ },
+ "Should we drop the ball on the holiday party?": {
+  "should_recall": true,
+  "query": "holiday party planning",
+  "reason": "past proposal/decision on event"
+ },
+ "Can we introduce a design-doc process for major changes?": {
+  "should_recall": true,
+  "query": "design-doc process",
+  "reason": "proposal for team process"
  }
 }
