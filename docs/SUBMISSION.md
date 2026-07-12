@@ -98,6 +98,22 @@ false decisions.
 > need the LLM expansion, which is available but off on the live card. An honest cost, stated plainly.
 > Full method + limits in [`BENCHMARK.md`](BENCHMARK.md); one command: `python benchmarks/run.py --md`.
 
+## Robustness — the number we lead with
+
+A jury will type anything into the sandbox, so we hardened for it. **Principle: silence is cheap, a
+confident wrong answer is fatal.** `benchmarks/adversarial.py` runs the full live pipeline over **75
+hostile queries** — paraphrases, never-discussed topics, nonsense, typos, multi-topic, other
+languages, and **false-premise provocations** ("didn't we decide to drop Postgres?" — no, we kept
+it):
+
+> **correct 39 · correct-inconclusive 36 (safe silence) · CONFIDENT-WRONG 0.**
+
+Zero confident-wrong answers. A **grounding invariant** enforces it: a standing decision is shown
+only if it's on the query's topic, a genuine decision, and sourced by a permalink — otherwise
+INCONCLUSIVE, never a guess. Provocations get the *actual* decision (which contradicts the false
+premise) or nothing. Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus **rate-limit grace**: when
+Slack throttles the search, Déjà says so ("ask again in a minute") instead of going silent.
+
 ## Privacy
 
 Déjà searches on the user's behalf with their RTS token, so it only ever sees channels that user can

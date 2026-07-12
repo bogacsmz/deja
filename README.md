@@ -55,6 +55,13 @@ unrelated decision **1/4** times. **Déjà → 4/6, never invents one (0/4).** (
 > decision) need the LLM expansion, which is available but off live for speed. Honest cost, not a
 > hidden failure. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · `python benchmarks/run.py --md`.
 
+## Robustness — silence is cheap, a confident wrong answer is fatal
+
+`benchmarks/adversarial.py` runs the live pipeline over **75 hostile queries** (paraphrases,
+never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations):
+**correct 39 · safe-silence 36 · CONFIDENT-WRONG 0.** A grounding invariant (on-topic + genuine +
+sourced, else INCONCLUSIVE) enforces the zero. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
+
 ## MCP — query Déjà's memory from any agent
 ```bash
 python -m deja.mcp_server   # stdio (Cursor/Claude Desktop); DEJA_MCP_TRANSPORT=streamable-http for remote
