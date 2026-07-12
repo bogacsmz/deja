@@ -1,19 +1,27 @@
-# Déjà — the team memory that stops you re-litigating decisions
+# Déjà — the decision-governance layer for your Slack workspace
 
-> **Déjà doesn't just remember what your team decided. It stops them from deciding it again.**
+> **Slack is filling up with agents. None of them know what your team already decided.**
+> **Déjà does — it watches them, and now they can ask.**
+>
+> *Most AI guardrails make you write the rules. Déjà reads them from what your team already decided.*
 
-When a decision, claim, or proposal comes up in a Slack channel, **Déjà** quietly surfaces the
-concrete past thread your team already had on it — **and what was decided** — as a clean Block Kit
-memory card. Its memory is also a standalone **MCP tool** any external agent can call.
+When a decision, claim, or proposal comes up in a channel — from a **human or an agent** — Déjà checks
+it against the team's standing decisions and, **only when it conflicts**, drops a sourced guardrail:
 
-> ⏳ **Déjà vu — your team already discussed this** · #eng
-> *"Kicking off the migration from Redis to Temporal…"*
-> 🧵 **What happened next:** *"Rolling back — operational overhead isn't worth it. Sticking with Redis."*
-> 🔒 Only searches channels you can access · powered by Legibright
+> ⚠️ **Conflicts with a standing decision** · #eng
+> *"Opening a PR to migrate the job queue to Temporal."* — the team **rolled this back** on Apr 23 (@maya):
+> *"duplicate task execution under a network partition… sticking with Redis."* · 🔗 source
 
-**Slack Agent Builder Challenge · New Slack Agent track.** Two required technologies: **RTS recall**
-(`assistant.search.context`, permission-aware) + **MCP** (a `recall_memory` tool). The LLM trigger
-runs on a **Claude Max subscription** — no paid API key.
+Two consumers, one engine:
+- **Ambient (Mode B)** — Déjà reads every message, human **and agent**, and brakes conflicts. No opt-in
+  needed; you don't grant permission, you're watched. ALLOW stays silent — the channel stays clean.
+- **MCP (collaborative)** — any agent (or Slackbot) calls `check_decision(proposal)` →
+  `ALLOW | CONFLICTS | INCONCLUSIVE`, always sourced. *Any agent in Slack can adopt this in five lines.*
+
+**Slack Agent Builder Challenge · New Slack Agent track.** Required technologies: **RTS** (permission-
+aware `assistant.search.context`) + **MCP** (two tools — `recall_memory` + `check_decision`), plus
+agent-to-agent governance and ambient agent watching. The LLM trigger runs on a **Claude Max
+subscription** — no paid API key. · powered by Legibright
 
 ## Quick start
 ```bash
@@ -34,6 +42,7 @@ python scripts/verify_all.py   # the cross-phase gate — one green table (below
 | 5 · MCP | `recall_memory` tool + real stdio client | `recall_memory unit`, `MCP stdio` |
 | 6 · Seed | Realistic multi-author workspace + decision arcs | `seed integrity`, `seed dry-run` |
 | 6 · Decision arc | Timeline + standing decision + owner + INCONCLUSIVE + save→Canvas | `arc synthesis`, `arc card`, `decision store` |
+| v2 · Governance | `check_decision` verdict + ambient watch + Planner-Bot trial | `govern verdict`, `ambient loop-safety`, `governance benchmark` |
 | 7 · Docs | Architecture · submission · demo · review | — |
 
 **One command proves it all:** `python scripts/verify_all.py` → a phase-by-phase ✅ table
@@ -68,25 +77,61 @@ auth" thread and the **grounding gate** must reject it: a decision shows only if
 distinctive *subject* words is in the retrieved threads — a shared action verb (buy · migrate · drop ·
 launch) is not a topic match. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 
-## MCP — query Déjà's memory from any agent
+## Does the brake fire on the right proposal? (governance benchmark)
+
+`benchmarks/governance.py` runs 23 labelled proposals through the **exact live verdict**
+(`judge → check_decision`) — genuine conflicts, aligned proposals, never-discussed topics, lexical
+traps, and discussed-but-undecided. Run once, no tuning: **false CONFLICTS 0 · sourceless verdict 0 ·
+owner attribution 11/11 · precision 100% / recall 62%.** The 3 missed brakes are one honest class
+(a positive adoption naming its rejected alternative *without* a rejection cue) — we would rather miss
+a brake than raise a false one. Full method + the missed cases: [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md).
+External validation on 8 real OSS decision histories: [`docs/EXTERNAL.md`](docs/EXTERNAL.md).
+
+## The governance contract — any agent can ask before it acts
+
+Déjà's MCP server exposes **two** tools. The second is the interface contract: **any agent in Slack
+can adopt this in five lines** — call it before a consequential action and honour the verdict.
+
+```python
+verdict = await mcp.call("check_decision", {"proposal": "Migrate the job queue to Temporal"})
+if verdict["verdict"] == "CONFLICTS":
+    # the team already rolled this back — stop and cite verdict["sources"]
+    raise Halt(verdict["standing_decision"], by=verdict["owner"], at=verdict["decided_at"])
+# ALLOW / INCONCLUSIVE → proceed (INCONCLUSIVE = discussed, never decided — Déjà won't invent one)
+```
+
+`check_decision(proposal)` → `{verdict: ALLOW|CONFLICTS|INCONCLUSIVE, standing_decision, owner,
+decided_at, times_discussed, sources:[{text, permalink, channel, ts}], rationale}`. The verdict runs
+the **same engine** as the ambient guardrail (judge → recall_arc → grounding gate). **A CONFLICTS with
+no sources downgrades to INCONCLUSIVE** — a fabricated brake is worse than none. Measured:
+[`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) — false-conflicts **0**, sourceless **0**, owner **11/11**.
+
+`recall_memory(query, channel=None, limit=3)` → `{summary, memories:[{source_message,
+what_happened_next, channel, author, ts, permalink, score}], searched}` is unchanged and still there
+for pure lookup. Both are permission-aware (user token). Verify end-to-end with `python scripts/mcp_smoke.py`.
+
 ```bash
 python -m deja.mcp_server   # stdio (Cursor/Claude Desktop); DEJA_MCP_TRANSPORT=streamable-http for remote
 ```
-Wire into Cursor (`.cursor/mcp.json`) or Claude Desktop (`claude_desktop_config.json`):
 ```json
 { "mcpServers": { "deja": {
   "command": ".venv/bin/python", "args": ["-m", "deja.mcp_server"],
   "cwd": "/absolute/path/to/slackhack"
 } } }
 ```
-`recall_memory(query, channel=None, limit=3)` → `{summary, memories:[{source_message,
-what_happened_next, channel, author, ts, permalink, score}], searched}`. Permission-aware (user
-token). Verify end-to-end with `python scripts/mcp_smoke.py`.
+
+### Agents on trial — the brake, live (Mode B, no cooperation needed)
+Déjà also watches the channel. A separate demo app, the **Planner Bot** (`planner_bot/`), posts action
+proposals with **no awareness of Déjà** — Déjà catches the conflicting one and drops a sourced card,
+stays silent on the aligned one, and refuses to invent a verdict on the undecided one. Governance
+*without* the agent's opt-in. See [`planner_bot/README.md`](planner_bot/README.md).
 
 ## Layout
-`deja/` — the engine (`recall`/RTS · `trigger`/LLM · `thread` enrichment · `card` · `memory` ·
-`mcp_server`) · `listeners/` — Slack events/actions/views · `scripts/` — seed + verify + smoke ·
-`tests/` · `docs/`. The Bolt starter-template README this was scaffolded from is preserved below.
+`deja/` — the engine (`recall`/RTS · `trigger`/LLM · `thread` enrichment · `card` · `store` ·
+`govern`/the verdict · `mcp_server`/two tools) · `listeners/` — Slack events (incl. the ambient
+watcher)/actions/views · `planner_bot/` — the demo agent Déjà puts on trial · `scripts/` — seed +
+verify + smoke · `benchmarks/` · `tests/` · `docs/`. The Bolt starter-template README this was
+scaffolded from is preserved below.
 
 ---
 

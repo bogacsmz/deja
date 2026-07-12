@@ -147,7 +147,7 @@ def _try_these_blocks() -> list[dict]:
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": "Type any of these in a channel I'm in — no need to mention me.",
+                    "text": "Type any of these in a channel I'm in — no need to mention me. I brake conflicts from a human _or an agent_, and stay silent otherwise. Agents can also ask me directly via `check_decision`.",
                 }
             ],
         },
@@ -177,7 +177,7 @@ def build_app_home_view(
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "🕰️ Déjà — your team's decision memory",
+                "text": "🕰️ Déjà — your workspace's decision-governance layer",
                 "emoji": True,
             },
         },
@@ -186,7 +186,7 @@ def build_app_home_view(
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": "I surface decisions your team already made — _before you make them again._",
+                    "text": "I read the standing decision from what your team already decided — and brake a human _or an agent_ who's about to re-litigate it.",
                 }
             ],
         },
