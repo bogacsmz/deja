@@ -47,6 +47,28 @@ def test_honesty_inconclusive_when_no_decision():
     )  # the discussion is still surfaced, just not a fake decision
 
 
+def test_state_machine_derives_standing_and_revival_does_not_overturn():
+    arc = build_arc(
+        "temporal",
+        [
+            _m("1", source="proposing we migrate to Temporal", author="maya"),
+            _m(
+                "2",
+                decision="Decision: rolling back to Redis, not worth it",
+                author="maya",
+            ),
+            _m(
+                "3", source="should we revisit Temporal again?", author="sam"
+            ),  # revival, no decision
+        ],
+    )
+    states = [e.state for e in arc.timeline]
+    assert states == ["proposed", "reversed", "revived"]
+    # the trailing revival must NOT overturn the standing decision
+    assert "rolling back" in arc.standing_decision.lower()
+    assert arc.owner == "maya"
+
+
 def test_single_thread_degrades_cleanly():
     arc = build_arc("auth", [_m("5", decision="decided: buy Auth0", author="maya")])
     assert arc.times_discussed == 1

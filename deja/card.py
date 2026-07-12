@@ -16,6 +16,9 @@ from deja.models import Hit
 # Privacy + AI-transparency footer (Slack agent-design: label AI-generated content).
 _FOOTER = ":robot_face: AI-generated summary · :lock: only channels you can access · powered by Legibright"
 
+# Decision-state-machine icons for the timeline.
+_STATE_ICON = {"proposed": "💡", "adopted": "✅", "reversed": "↩️", "revived": "🔄"}
+
 
 def _epoch(ts: str) -> int:
     try:
@@ -209,7 +212,8 @@ def build_arc_card(
     blocks.append({"type": "divider"})
     lines = []
     for e in arc.timeline[:7]:
-        mark = ":white_check_mark: " if e.is_decision else ""
+        icon = _STATE_ICON.get(e.state, "")
+        mark = f"{icon} " if icon else ""
         date = f"`{e.date}` " if e.date else ""
         link = f"  <{e.permalink}|↗>" if e.permalink else ""
         lines.append(

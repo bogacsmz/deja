@@ -41,6 +41,42 @@ _MONTHS = {
 _DATE_RE = re.compile(r"\[\s*([A-Za-z]{3,9})\s+(\d{1,2})\s*\]")
 
 
+# Decision state machine — each retrieved thread is a transition, and the standing decision is
+# DERIVED from the last state-changing one (adopted/reversed), not guessed from recency.
+_REVERSAL_CUES = (
+    "rolling back",
+    "rolled back",
+    "roll back",
+    "reverted",
+    "dropping",
+    "dropped",
+    "killed",
+    "abandon",
+    "moved away",
+    "stepped away",
+    "instead of",
+    "not worth",
+    "isn't worth",
+)
+_REVIVAL_CUES = (
+    "revisit",
+    "reopen",
+    "again",
+    "bring back",
+    "go back to",
+    "coming back",
+    "revive",
+)
+
+
+def _transition(summary: str, is_decision: bool) -> str:
+    """Classify a thread's role in the arc: proposed | adopted | reversed | revived."""
+    s = summary.lower()
+    if is_decision:
+        return "reversed" if any(c in s for c in _REVERSAL_CUES) else "adopted"
+    return "revived" if any(c in s for c in _REVIVAL_CUES) else "proposed"
+
+
 @dataclass(frozen=True)
 class ArcEvent:
     ts: str
@@ -50,6 +86,7 @@ class ArcEvent:
     summary: str  # one short line (the decision if there is one, else the proposal)
     permalink: str
     is_decision: bool
+    state: str = "proposed"  # proposed | adopted | reversed | revived (the state-machine transition)
 
 
 @dataclass(frozen=True)
@@ -136,17 +173,21 @@ def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
                     summary=_short(decision or _strip_date(source), 220),
                     permalink=m.get("permalink", ""),
                     is_decision=bool(decision),
+                    state=_transition(decision or _strip_date(source), bool(decision)),
                 ),
             )
         )
     scored.sort(key=lambda x: x[0])  # chronological by content date (ts fallback)
     events = [e for _, e in scored]
 
-    # Grounding invariant: a standing decision must be a GENUINE decision (is_decision) AND SOURCED
-    # (clickable permalink). No permalink -> we can't prove it -> it doesn't get to be the answer.
-    decisions = [e for e in events if e.is_decision and e.permalink]
+    # Derive the standing decision from the state machine: the LAST state-changing transition
+    # (adopted or reversed), which must also be SOURCED (clickable permalink) — grounding invariant.
+    # A trailing 'revived' with no new decision does NOT change the standing (reopened ≠ re-decided).
+    decisions = [
+        e for e in events if e.state in ("adopted", "reversed") and e.permalink
+    ]
     if decisions:
-        standing = decisions[-1]  # the most recent decision is the one in force
+        standing = decisions[-1]
         confidence, standing_decision = "high", standing.summary
         owner, decided_at = standing.author, standing.date
     else:
@@ -190,6 +231,7 @@ def as_record(arc: DecisionArc | None) -> dict:
                 "summary": e.summary,
                 "permalink": e.permalink,
                 "is_decision": e.is_decision,
+                "state": e.state,
             }
             for e in arc.timeline
         ],
@@ -283,17 +325,12 @@ def _query_subjects(query: str) -> list[str]:
 
 
 def _primary_terms(query: str) -> list[str]:
-    """The query's topic anchor(s) that a grounded standing decision must be about: the named
-    product(s) if any, else the single most distinctive word. Errs toward INCONCLUSIVE — better
-    silent than a confident answer drawn from an off-topic thread."""
-    subjects = _query_subjects(query)
-    if subjects:
-        return subjects
-    words = sorted(
-        {w for w in _ANCHOR_WORD.findall(query.lower())} - _STOP,
-        key=lambda w: (-len(w), w),
-    )
-    return words[:1]
+    """The named product(s) a grounded standing decision must be about — the guard that stops a
+    generic anchor ('migration') pulling an off-topic decision (the monorepo thread) into a
+    'Temporal' query. Only fires when the query NAMES a product (capitalized). Descriptive queries
+    ('how do we ship to production?') are grounded by the judge gate + build_arc's sourced-decision
+    check instead — so the guard never filters them out on an incidental long word."""
+    return _query_subjects(query)
 
 
 async def _cluster(query, base, terms, limit, recall_fn, thread_fn):
@@ -314,6 +351,45 @@ async def _cluster(query, base, terms, limit, recall_fn, thread_fn):
         m for m in memories if _on_topic(m, terms)
     ]  # stay on the topic, no drift
     return memories, build_arc(query, memories)
+
+
+def _canonical(query: str) -> DecisionArc | None:
+    """A saved decision that matches a named product in the query — the canonical, sourced answer,
+    returned without touching RTS. Strict: the query must name a product that appears in the saved
+    topic, so it never fires for an unrelated query. Requires a permalink (grounding invariant)."""
+    subjects = _query_subjects(query)
+    if not subjects:
+        return None
+    from deja.store import list_decisions
+
+    for d in list_decisions():
+        topic = (d.get("topic") or "").lower()
+        if (
+            d.get("decision")
+            and d.get("url")
+            and any(s.lower() in topic for s in subjects)
+        ):
+            ev = ArcEvent(
+                ts=str(d.get("saved_at", "")),
+                date=d.get("at", ""),
+                channel="saved",
+                author=d.get("owner", ""),
+                summary=_short(d["decision"], 220),
+                permalink=d["url"],
+                is_decision=True,
+                state="adopted",
+            )
+            return DecisionArc(
+                topic=d.get("topic", ""),
+                timeline=(ev,),
+                standing_decision=ev.summary,
+                owner=ev.author,
+                decided_at=ev.date,
+                times_discussed=d.get("times_discussed", 1),
+                sources=(ev.permalink,),
+                confidence="high",
+            )
+    return None
 
 
 async def recall_arc(
@@ -341,11 +417,34 @@ async def recall_arc(
     from deja.expand import expand_query, keep_specific
     from deja.memory import recall_memories
 
+    # Canonical memory first (the flywheel): if the team explicitly SAVED a decision on this named
+    # product, return it instantly — sourced, no RTS. Strict subject match, so it never fires for an
+    # unrelated query. Skipped for the injected (benchmark) retrieval so the benchmark measures search.
+    if recall_fn is None:
+        canon = _canonical(query)
+        if canon is not None:
+            return canon
+
     base = (
         await recall_memories(
             query, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
         )
     ).get("memories", [])
+
+    # Multi-query: if the query NAMES products, also recall by each name directly. The judge's phrasing
+    # may lead retrieval to an incidental word ('Datadog billing' → the pricing thread); a recall on
+    # 'Datadog' pulls the actual Datadog threads. The grounding filter below then keeps the on-topic
+    # ones. RTS-only, bounded.
+    seen = {m.get("ts") for m in base}
+    for subj in _query_subjects(query)[:2]:
+        more = await recall_memories(
+            subj, limit=limit, recall_fn=recall_fn, thread_fn=thread_fn
+        )
+        for m in more.get("memories", []):
+            if m.get("ts") not in seen:
+                base.append(m)
+                seen.add(m.get("ts"))
+
     memories, arc = base, build_arc(query, base)
 
     # Expand when the first pass has no standing decision — it returned a reopen/proposal thread

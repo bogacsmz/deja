@@ -158,14 +158,19 @@ CASES: list[tuple[str, str, list[str]]] = [
 
 
 async def classify(query: str, mode: str, tokens: list[str]) -> str:
+    """correct | correct-silent (nothing to find) | MISS (it was there, we didn't) | CONFIDENT-WRONG.
+
+    Silence is a *win* only when the workspace genuinely holds no decision (mode 'silent'). For a
+    'topic' query — where a real decision exists — silence is a RECALL MISS, not a safe pass. This is
+    the honest split: 'safe silence' hides misses."""
     q = await _judge_query(query)
     if not q:
-        return "correct-inconclusive"  # judge gated it — silence is safe
+        return "correct-silent" if mode == "silent" else "MISS"
     arc = await recall_arc(
         q, recall_fn=local_recall, thread_fn=local_thread, expand=False
     )
     if arc is None or arc.inconclusive:
-        return "correct-inconclusive"  # INCONCLUSIVE is always safe
+        return "correct-silent" if mode == "silent" else "MISS"
     dec = arc.standing_decision.lower()
     if mode == "silent":
         return "CONFIDENT-WRONG"  # claimed a decision where there is none
@@ -181,15 +186,20 @@ async def main(argv: list[str]) -> int:
 
     lines = [f"{'verdict':<20} {'mode':<8} query", "-" * 78]
     for v, m, q in rows:
-        flag = "🔴" if v == "CONFIDENT-WRONG" else "  "
+        flag = "🔴" if v == "CONFIDENT-WRONG" else ("🟡" if v == "MISS" else "  ")
         lines.append(f"{flag}{v:<18} {m:<8} {q[:46]}")
     n = len(CASES)
+    topic_n = sum(1 for _, mode, _ in CASES if mode == "topic")
+    recall = tally["correct"] / topic_n if topic_n else 0
     lines += [
         "",
-        f"TOTAL {n} adversarial queries:",
-        f"  correct                : {tally['correct']}",
-        f"  correct-inconclusive   : {tally['correct-inconclusive']}  (silence — safe)",
-        f"  CONFIDENT-WRONG        : {tally['CONFIDENT-WRONG']}   <<< the number that matters (target 0)",
+        f"TOTAL {n} adversarial queries ({topic_n} have a real decision to find):",
+        f"  correct         : {tally['correct']}   (found the right standing decision)",
+        f"  MISS            : {tally['MISS']}   <<< recall gap: it was there, we stayed silent",
+        f"  correct-silent  : {tally['correct-silent']}   (nothing to find — silence is right)",
+        f"  CONFIDENT-WRONG : {tally['CONFIDENT-WRONG']}   <<< must stay 0",
+        "",
+        f"  RECALL on real-decision queries: {tally['correct']}/{topic_n} = {recall:.0%}",
     ]
     out = "\n".join(lines)
     print("\n" + out)
@@ -199,9 +209,14 @@ async def main(argv: list[str]) -> int:
             "# Déjà robustness — adversarial self-test",
             "",
             "The jury will type anything into the sandbox. **Principle: silence is cheap, a confident",
-            "wrong answer is fatal.** This runs the *full live pipeline* (judge → recall_arc, the real",
-            "card path) over ~90 hostile queries and classifies each. The number that matters is",
-            "**CONFIDENT-WRONG — the target is 0.**",
+            "wrong answer is fatal — but a silent bot is a cheap victory, so we measure recall too.**",
+            "This runs the *full live pipeline* (judge → recall_arc, the real card path) over 75 hostile",
+            "queries and splits the outcome honestly:",
+            "",
+            "- **correct** — found the right standing decision.",
+            "- **MISS** — a real decision existed, we stayed silent (the recall gap we care about).",
+            "- **correct-silent** — nothing to find; silence is right.",
+            "- **CONFIDENT-WRONG** — asserted a wrong/off-topic decision. **Must be 0.**",
             "",
             "```",
             out,
@@ -214,9 +229,17 @@ async def main(argv: list[str]) -> int:
             "## Why CONFIDENT-WRONG stays at 0",
             "- The **judge** gates chit-chat/logistics/nonsense before any search.",
             "- The **grounding invariant** (deja/arc.py): a standing decision is shown only if it's on",
-            "  the query's topic, a genuine decision, and sourced by a permalink — else INCONCLUSIVE.",
-            "- **Provocations** get the *actual* standing decision (which contradicts the false premise)",
-            "  or nothing — Déjà never parrots the premise back.",
+            "  the query's topic (named-product guard), a genuine decision, and sourced by a permalink.",
+            "- The **decision state machine**: the standing decision is DERIVED from the last",
+            "  state-changing transition (adopted/reversed), not guessed from recency; a trailing",
+            "  'revived' doesn't overturn it. Provocations get the real decision or nothing — never the",
+            "  premise parroted back.",
+            "",
+            "## The remaining misses (honest)",
+            "The misses are 'Postgres or Mongo?' variants (the decision lives in a reply while the parent",
+            "proposes *MongoDB* — RTS matches parents, and the local mirror tokenizes 'MongoDB' ≠ 'Mongo',",
+            "so it under-reports here vs live) and a French phrasing ('déploiement continu') that needs",
+            "the LLM translation the live card path keeps off for speed. Named work, not hidden.",
             "",
             "Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the local mirror",
             "calibrated to live. Run: `python benchmarks/adversarial.py --md`.",

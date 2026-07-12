@@ -49,6 +49,24 @@ def test_canvas_markdown_has_ai_label_and_content(tmp_path, monkeypatch):
     assert "No decisions saved yet" in render_canvas_markdown([])
 
 
+def test_canonical_memory_first(tmp_path, monkeypatch):
+    """A saved decision on a named product is returned as a sourced arc, no retrieval needed."""
+    store = _fresh_store(tmp_path, monkeypatch)
+    store.save_decision(_REC, saved_by="U1")
+    import importlib
+
+    import deja.arc as arc_mod
+
+    importlib.reload(arc_mod)
+    hit = arc_mod._canonical("should we use Temporal for jobs?")  # names 'Temporal'
+    assert hit is not None and not hit.inconclusive
+    assert "rolling back" in hit.standing_decision.lower()
+    assert hit.sources == ("https://x/p1",)  # sourced
+    assert (
+        arc_mod._canonical("should we adopt Kafka?") is None
+    )  # unrelated -> no false canonical hit
+
+
 def test_app_home_digest_shows_saved_decisions(tmp_path, monkeypatch):
     store = _fresh_store(tmp_path, monkeypatch)
     store.save_decision(_REC, saved_by="U1")
