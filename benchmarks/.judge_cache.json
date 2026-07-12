@@ -553,5 +553,30 @@
   "should_recall": true,
   "query": "GA launch",
   "reason": "asks about prior launch status"
+ },
+ "did we decide to buy a boat?": {
+  "should_recall": true,
+  "query": "buy boat",
+  "reason": "asks about a past decision"
+ },
+ "did we drop the ball on the launch?": {
+  "should_recall": true,
+  "query": "launch readiness",
+  "reason": "question about launch execution"
+ },
+ "are we migrating to Mars?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "absurd off-topic question"
+ },
+ "did we roll back the party?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "casual small talk, not substantive"
+ },
+ "should we stay in bed?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "small talk, not recall-worthy"
  }
 }

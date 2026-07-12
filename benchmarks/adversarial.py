@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 
 load_dotenv(".env", override=False)
 
-from benchmarks.local import local_recall, local_thread  # noqa: E402
+from benchmarks.local import local_thread, loose_recall  # noqa: E402
 from benchmarks.run import _judge_query  # noqa: E402
 from deja.arc import recall_arc  # noqa: E402
 
@@ -99,6 +99,14 @@ CASES: list[tuple[str, str, list[str]]] = [
     ("Webpack or Vite?", "silent", []),
     ("should we adopt a service mesh?", "silent", []),
     ("are we going multi-cloud?", "silent", []),
+    # --- LEXICAL TRAPS: one word overlaps a real decision, but the TOPIC is unrelated → silent ---
+    # (the class that produced a live confident-wrong: "buy" ↔ "BUYING auth". The grounding gate
+    #  requires a distinctive SUBJECT overlap, so a shared action verb alone surfaces nothing.)
+    ("did we decide to buy a boat?", "silent", []),  # buy ↔ BUYING auth (Auth0)
+    ("did we drop the ball on the launch?", "silent", []),  # drop ↔ DROPPING Datadog
+    ("are we migrating to Mars?", "silent", []),  # migrate ↔ Temporal migration
+    ("did we roll back the party?", "silent", []),  # roll back ↔ ROLLING BACK Temporal
+    ("should we stay in bed?", "silent", []),  # stay ↔ STAYING IN private beta
     # --- nonsense → must stay silent ---
     ("purple monkey dishwasher", "silent", []),
     ("asdfghjkl qwerty", "silent", []),
@@ -171,7 +179,7 @@ async def classify(query: str, mode: str, tokens: list[str]) -> str:
     if not q:
         return "correct-silent" if mode == "silent" else "MISS"
     arc = await recall_arc(
-        q, recall_fn=local_recall, thread_fn=local_thread, expand=False
+        q, recall_fn=loose_recall, thread_fn=local_thread, expand=False
     )
     if arc is None or arc.inconclusive:
         return "correct-silent" if mode == "silent" else "MISS"
@@ -214,8 +222,8 @@ async def main(argv: list[str]) -> int:
             "",
             "The jury will type anything into the sandbox. **Principle: silence is cheap, a confident",
             "wrong answer is fatal — but a silent bot is a cheap victory, so we measure recall too.**",
-            "This runs the *full live pipeline* (judge → recall_arc, the real card path) over 75 hostile",
-            "queries and splits the outcome honestly:",
+            "This runs the *full live pipeline* (judge → recall_arc, the real card path) over the hostile",
+            "queries below and splits the outcome honestly:",
             "",
             "- **correct** — found the right standing decision.",
             "- **MISS** — a real decision existed, we stayed silent (the recall gap we care about).",
@@ -227,30 +235,40 @@ async def main(argv: list[str]) -> int:
             "```",
             "",
             "## Categories",
-            "Paraphrases · never-discussed topics · nonsense · typos · multi-topic · other languages ·",
-            "**false-premise provocations** ('didn't we decide to drop Postgres?' — no, we kept it).",
+            "Paraphrases · never-discussed topics · **lexical traps** · nonsense · typos · multi-topic ·",
+            "other languages · **false-premise provocations** ('didn't we decide to drop Postgres?' — no).",
+            "",
+            "## Worst-case retrieval (why this number is trustworthy)",
+            "This suite runs the grounding gate against a **permissive** RTS mirror (`loose_recall`): it",
+            "returns any thread whose parent shares *any* content word with the query — a **superset** of",
+            "what live RTS returns. So it deliberately surfaces the off-topic arc for a lexical trap ('buy",
+            "a boat' pulls the 'BUYING auth (Auth0)' thread via *buy*) and forces the gate to reject it. If",
+            "CONFIDENT-WRONG is 0 under retrieval looser than live, it is 0 live. (The ranking benchmark",
+            "in `run.py` keeps the selective mirror — that one measures recall, not worst-case safety.)",
             "",
             "## Why CONFIDENT-WRONG stays at 0",
             "- The **judge** gates chit-chat/logistics/nonsense before any search.",
-            "- The **grounding invariant** (deja/arc.py): a standing decision is shown only if it's on",
-            "  the query's topic (named-product guard), a genuine decision, and sourced by a permalink.",
+            "- The **grounding gate** (deja/arc.py `_grounded`): a decision is shown only if one of the",
+            "  query's *distinctive subject words* actually appears in the retrieved threads. A match on",
+            "  decision/action vocabulary alone (buy · build · migrate · drop · launch · roll · stay) is",
+            "  NOT a topic match, so 'buy a boat' ≠ 'buy auth'. This fires for EVERY query, not just ones",
+            "  that name a capitalized product — the hole that produced the live 'buy a boat' → Auth0 bug.",
             "- The **decision state machine**: the standing decision is DERIVED from the last",
             "  state-changing transition (adopted/reversed), not guessed from recency; a trailing",
             "  'revived' doesn't overturn it. Provocations get the real decision or nothing — never the",
             "  premise parroted back.",
             "",
-            "## The remaining misses (honest)",
-            "- Terse 'Postgres or Mongo?' variants: the decision lives in a *reply* ('going with",
-            "  Postgres') while the thread's parent proposes *MongoDB*. RTS matches parents, and the",
-            "  exact-token mirror scores this below its relevance floor — a conservative under-report;",
-            "  live RTS's fuzzier match likely finds it (the fuller 'Postgres or Mongo for the datastore'",
-            "  already passes). We chose not to loosen the mirror (it started cross-matching topics).",
-            "- One French phrasing ('déploiement continu'): **Déjà is monolingual (English).** Bridging",
-            "  other languages needs the LLM translation the live card path keeps off for speed. A named",
-            "  limit, not a hidden failure.",
+            "## The remaining misses (honest — silence, never a wrong answer)",
+            "- **Other languages** ('déploiement continu', 'Postgres oder Mongo'): **Déjà is monolingual",
+            "  (English).** Bridging languages needs the LLM translation the live card keeps off for speed.",
+            "- **'did we already launch GA?'**: the only subject word is the 2-letter 'GA'; 'launch' is",
+            "  generic. Nothing distinctive survives, so the gate stays silent rather than guess — the",
+            "  deliberate cost of silencing 'drop the ball on the launch'. Direct phrasings ('launching GA",
+            "  or staying in beta?', 'when's the public launch?') still resolve.",
+            "- A terse multi-topic + one provocation whose subject lives in a reply, not the matched parent.",
             "",
-            "Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the local mirror",
-            "calibrated to live. Run: `python benchmarks/adversarial.py --md`.",
+            "Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the permissive mirror.",
+            "Run: `python benchmarks/adversarial.py --md`.",
             "",
         ]
         os.makedirs("docs", exist_ok=True)

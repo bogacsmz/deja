@@ -43,8 +43,8 @@ python scripts/verify_all.py   # the cross-phase gate — one green table (below
 
 Measured on the **exact live pipeline** (`judge(sentence) → recall_arc`). On a **held-out set we
 never tuned on**, single-hit search surfaces the standing decision **1/6** times and drifts onto an
-unrelated decision **1/4** times. **Déjà → 4/6, never invents one (0/4).** (Dev set: 6/6 recurring,
-0 false decisions.)
+unrelated decision **1/4** times. **Déjà → 4/6 recurring · 3/5 single, never invents one (0/4).**
+(Dev set: 6/6 recurring, 7/7 single, 0 false decisions.)
 
 > **We surface this, we don't hide it:** Slack's Real-Time Search is rate-limited to ~1 call every
 > few minutes (measured `Retry-After: 288s`), so a 100+-query *live* benchmark isn't possible. The
@@ -57,12 +57,14 @@ unrelated decision **1/4** times. **Déjà → 4/6, never invents one (0/4).** (
 
 ## Robustness — silence is cheap, a confident wrong answer is fatal
 
-`benchmarks/adversarial.py` runs the live pipeline over **75 hostile queries** (paraphrases,
-never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations)
-and splits the result honestly: **correct 46 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** →
-**recall 90%, zero confident-wrong.** Déjà derives the standing decision from a state machine
-(proposed → adopted → reversed → revived), and a grounding invariant (on-topic + genuine + sourced,
-else INCONCLUSIVE) keeps confident-wrong at 0. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
+`benchmarks/adversarial.py` runs the live pipeline over **83 hostile queries** (paraphrases,
+never-discussed topics, **lexical traps**, nonsense, typos, multi-topic, other languages,
+false-premise provocations) and splits the result honestly: **correct 45 · MISS 6 · correct-silent
+32 · CONFIDENT-WRONG 0** → **recall 88%, zero confident-wrong.** It runs against a *permissive* mirror
+(a superset of live search), so a trap like "did we decide to **buy** a boat?" surfaces the "**BUYING**
+auth" thread and the **grounding gate** must reject it: a decision shows only if one of the query's
+distinctive *subject* words is in the retrieved threads — a shared action verb (buy · migrate · drop ·
+launch) is not a topic match. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 
 ## MCP — query Déjà's memory from any agent
 ```bash

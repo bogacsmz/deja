@@ -284,6 +284,60 @@ LAUNCH = (
 # Its live threads are deleted via OBSOLETE_MARKERS below.)
 
 
+# --- Single decisions, moved here from the raw-user seed so the owner/date are real personas + a
+# back-dated "[Mon DD]", not the sandbox account posting today. Each is one thread (proposal +
+# decision reply) → a confident, sourced single-decision arc. -------------------------------------
+AUTH = (
+    Thread(
+        "product",
+        "‹deja-arc:auth-1›",
+        Msg(
+            "Diego Santos",
+            "[Mar 4] Do we build our own auth (sessions, SSO, MFA) or buy a provider? "
+            "Building it keeps us flexible and avoids per-MAU fees.",
+        ),
+        (
+            Msg(
+                "Lena Fischer",
+                "Auth is a security minefield — SAML edge cases alone will eat weeks.",
+            ),
+            Msg(
+                "Diego Santos",
+                "Decision: we're BUYING auth (Auth0) rather than building in-house. Not "
+                "worth owning the security surface pre-scale. We'll re-evaluate bringing it "
+                "in-house if per-MAU cost becomes a real line item.",
+            ),
+        ),
+    ),
+)
+
+DATASTORE = (
+    Thread(
+        "eng",
+        "‹deja-arc:datastore-1›",
+        Msg(
+            "Alex Rivera",
+            "[Feb 3] Proposing we standardize the primary datastore on MongoDB — the "
+            "flexible schema will let us move faster on new features. Thoughts before I write "
+            "the ADR?",
+        ),
+        (
+            Msg(
+                "Maya Chen",
+                "My worry is transactions across collections — a lot of our flows need "
+                "multi-row consistency.",
+            ),
+            Msg(
+                "Alex Rivera",
+                "Decision: we're going with Postgres, not Mongo. JSONB gives us the schema "
+                "flexibility we wanted, and we keep real transactions + mature tooling. Mongo "
+                "stays out of the core stack.",
+            ),
+        ),
+    ),
+)
+
+
 # --- Noise: no decisions, recall should stay silent / inconclusive on these ----------------------
 NOISE = (
     Thread(
@@ -377,6 +431,8 @@ ARCS = {
     "Deploy cadence": DEPLOY,
     "RFC / design-doc process": RFC,
     "Launch timing": LAUNCH,
+    "Auth build vs buy": AUTH,
+    "Primary datastore": DATASTORE,
 }
 ALL_THREADS = [t for arc in ARCS.values() for t in arc] + list(NOISE)
 # Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above; the
@@ -395,6 +451,9 @@ OBSOLETE_MARKERS = (
     "‹deja-arc:deploy-3›",
     "‹deja-arc:freetier-1›",
     "‹deja-arc:freetier-2›",
+    # raw-user single seeds (seed_data.py), replaced by the back-dated persona arcs above:
+    "‹deja-seed:product-auth-v1›",
+    "‹deja-seed:eng-db-postgres-v1›",
 )
 
 

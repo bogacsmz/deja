@@ -130,6 +130,42 @@ def local_recall(
     ]
 
 
+def loose_recall(
+    query, *, token=None, limit=5, channel_types=None, exclude_ts=None
+) -> list[Hit]:
+    """PERMISSIVE RTS mirror for the adversarial suite — matches like live RTS at its loosest:
+    return any thread whose PARENT shares ANY content word with the query (no IDF relevance floor),
+    ranked by shared IDF weight. This is a SUPERSET of what live RTS returns, so it's the
+    conservative worst case: it surfaces the off-topic arc for a lexical-trap query ("buy a boat" →
+    the "BUYING auth" thread, via "buy"), forcing the grounding gate to prove itself. If
+    CONFIDENT-WRONG stays 0 here, it stays 0 live. Never used by the ranking benchmark (run.py),
+    which needs RTS-like selectivity to measure recall — only by adversarial robustness."""
+    qwords = _content(query)
+    scored: list[tuple[float, dict]] = []
+    for t in _THREADS:
+        if t["ts"] == exclude_ts:
+            continue
+        shared = qwords & _content(t["parent_text"])
+        if not shared:
+            continue
+        scored.append((round(sum(_idf(w) for w in shared), 4), t))
+    scored.sort(key=lambda x: (-x[0], -len(x[1]["replies"])))
+    return [
+        Hit(
+            reply_count=len(t["replies"]),
+            permalink=t["permalink"],
+            channel=t["channel"],
+            channel_id=t["channel"],
+            author=t["parent_author"],
+            author_id=t["parent_author"],
+            ts=t["ts"],
+            snippet=t["parent_text"],
+            score=sc,
+        )
+        for sc, t in scored[:limit]
+    ]
+
+
 async def local_thread(client, channel_id, ts) -> list[dict]:
     """Mirror conversations.replies over the snapshot: parent + replies as message dicts."""
     t = _BY_TS.get(ts)

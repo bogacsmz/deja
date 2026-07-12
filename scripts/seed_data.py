@@ -87,23 +87,6 @@ SEEDS: tuple[SeedThread, ...] = (
     _TEMPORAL,
     SeedThread(
         channel="eng",
-        marker="‹deja-seed:eng-db-postgres-v1›",
-        topic="Primary datastore: Postgres vs MongoDB",
-        parent=(
-            "Proposing we standardize the primary datastore on MongoDB — the flexible schema will "
-            "let us move faster on the new features. Thoughts before I write the ADR?"
-        ),
-        replies=(
-            "My worry is transactions across collections — a lot of our flows need multi-row "
-            "consistency.",
-            "Decision: we're going with Postgres, not Mongo. JSONB gives us the schema flexibility "
-            "we wanted, and we keep real transactions + mature tooling. Mongo stays out of the core "
-            "stack.",
-            "Agreed. ADR-014 written up: Postgres is the system of record.",
-        ),
-    ),
-    SeedThread(
-        channel="eng",
         marker="‹deja-seed:eng-monorepo-v1›",
         topic="Repo layout: monorepo vs polyrepo",
         parent=(
@@ -144,21 +127,6 @@ SEEDS: tuple[SeedThread, ...] = (
             "Update: we TRIED usage-based for a quarter and REVERTED. Customers hated the "
             "unpredictable invoices and churn ticked up. We're back to seat-based with a usage "
             "add-on for overages — predictable base, upside on heavy users.",
-        ),
-    ),
-    SeedThread(
-        channel="product",
-        marker="‹deja-seed:product-auth-v1›",
-        topic="Auth: build in-house vs buy",
-        parent=(
-            "Do we build our own auth (sessions, SSO, MFA) or buy a provider? Building it keeps us "
-            "flexible and avoids per-MAU fees."
-        ),
-        replies=(
-            "Auth is a security minefield — SAML edge cases alone will eat weeks.",
-            "Decision: we're BUYING auth (Auth0) rather than building in-house. Not worth owning "
-            "the security surface pre-scale. We'll re-evaluate bringing it in-house if per-MAU cost "
-            "becomes a real line item.",
         ),
     ),
     SeedThread(

@@ -276,6 +276,44 @@ _ANCHOR_WORD = re.compile(
     r"[A-Za-z][A-Za-z0-9]{2,}"
 )  # content words, ≥3 chars (keeps "RFC")
 
+# The vocabulary of DECIDING and CHANGING — verbs that appear across every decision thread
+# ("buy", "build", "migrate", "drop", "launch", "roll back", "stay"). Sharing one of these with a
+# thread is NOT a topic match: "did we decide to BUY a boat?" and "we're BUYING auth (Auth0)" both
+# say "buy", but the topics (boat vs auth) are unrelated. The grounding gate subtracts these so a
+# real SUBJECT noun ("boat", "Mars", "party") is what must overlap — never the action word alone.
+_GENERIC_ACTION = frozenset(
+    "buy buying bought build building built make making made adopt adopting adopted "
+    "migrate migrating migrated migration roll rolling rolled rollback revert reverting reverted "
+    "drop dropping dropped stay staying stayed launch launching launched ship shipping shipped "
+    "revisit reopen reopening revive revived choose choosing chose chosen pick picking picked "
+    "propose proposing proposed proposal plan planning planned decide deciding decided decision "
+    "decisions try trying tried standardize standardizing standardized consolidate consolidated "
+    "kill killing killed switching already".split()
+)
+
+
+def _distinctive(query: str) -> set[str]:
+    """The query's own SUBJECT words — content words minus stopwords minus decision/action verbs.
+    These are what a retrieved decision must actually be ABOUT to count as on-topic."""
+    return {w for w in _ANCHOR_WORD.findall(query.lower())} - _STOP - _GENERIC_ACTION
+
+
+def _grounded(query: str, memories: list[dict]) -> bool:
+    """General topic gate (applies to EVERY query, named-product or not): at least one of the
+    query's distinctive subject words must actually appear in the retrieved threads' text. Matches
+    the FULL thread text (parent proposal + decision reply), not the one-line summary, so a query
+    that uses the proposal's vocabulary ("primary datastore") still grounds even when the decision
+    reply doesn't echo it. Empty distinctive set (the query is all generic verbs) → not grounded:
+    we have nothing to be sure about, so we claim nothing."""
+    distinctive = _distinctive(query)
+    if not distinctive:
+        return False
+    blob = " ".join(
+        f"{m.get('source_message', '')} {m.get('what_happened_next') or ''}"
+        for m in memories
+    ).lower()
+    return bool(distinctive & set(_ANCHOR_WORD.findall(blob)))
+
 
 def _topic_anchors(query: str, memories: list[dict], k: int = 2) -> list[str]:
     """Topic terms shared between the query and the recalled threads — the words to expand on.
@@ -479,5 +517,14 @@ async def recall_arc(
         arc = build_arc(query, memories) if on_topic else None
 
     if exclude_ts and arc is not None:
-        arc = build_arc(query, [m for m in memories if m.get("ts") != exclude_ts])
+        memories = [m for m in memories if m.get("ts") != exclude_ts]
+        arc = build_arc(query, memories)
+
+    # Final grounding gate (ALWAYS, general — the safety net the named-product guard above misses):
+    # the arc must be about the query. A query with no capitalized subject ("did we decide to buy a
+    # boat?") never reached the guard above, so a lone lexical overlap ("buy" ↔ "BUYING auth") could
+    # surface a confident, sourced, WRONG decision. Require a distinctive subject-word overlap; if the
+    # retrieved threads aren't about what the query names, we found nothing — never a guess.
+    if arc is not None and not _grounded(query, memories):
+        arc = None
     return arc

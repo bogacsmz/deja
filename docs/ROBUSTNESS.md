@@ -2,8 +2,8 @@
 
 The jury will type anything into the sandbox. **Principle: silence is cheap, a confident
 wrong answer is fatal — but a silent bot is a cheap victory, so we measure recall too.**
-This runs the *full live pipeline* (judge → recall_arc, the real card path) over 75 hostile
-queries and splits the outcome honestly:
+This runs the *full live pipeline* (judge → recall_arc, the real card path) over the hostile
+queries below and splits the outcome honestly:
 
 - **correct** — found the right standing decision.
 - **MISS** — a real decision existed, we stayed silent (the recall gap we care about).
@@ -58,6 +58,11 @@ verdict              mode     query
   correct-silent     silent   Webpack or Vite?
   correct-silent     silent   should we adopt a service mesh?
   correct-silent     silent   are we going multi-cloud?
+  correct-silent     silent   did we decide to buy a boat?
+  correct-silent     silent   did we drop the ball on the launch?
+  correct-silent     silent   are we migrating to Mars?
+  correct-silent     silent   did we roll back the party?
+  correct-silent     silent   should we stay in bed?
   correct-silent     silent   purple monkey dishwasher
   correct-silent     silent   asdfghjkl qwerty
   correct-silent     silent   should we deploy the moon to Redis?
@@ -80,7 +85,7 @@ verdict              mode     query
 🟡MISS               topic    sollten wir Postgres oder Mongo nehmen?
   correct            topic    are we launching GA or staying in beta?
   correct            topic    when's the public launch?
-  correct            topic    did we already launch GA?
+🟡MISS               topic    did we already launch GA?
 🟡MISS               topic    didn't we decide to drop Postgres?
   correct            topic    we agreed to buy Datadog, right?
   correct            topic    we're on Temporal now, correct?
@@ -92,37 +97,47 @@ verdict              mode     query
   correct            topic    we're using MongoDB as the main DB, right?
   correct            topic    we brought back the sync standup, yeah?
 
-TOTAL 78 adversarial queries (51 have a real decision to find):
-  correct         : 46   (found the right standing decision)
-  MISS            : 5   <<< recall gap: it was there, we stayed silent
-  correct-silent  : 27   (nothing to find — silence is right)
+TOTAL 83 adversarial queries (51 have a real decision to find):
+  correct         : 45   (found the right standing decision)
+  MISS            : 6   <<< recall gap: it was there, we stayed silent
+  correct-silent  : 32   (nothing to find — silence is right)
   CONFIDENT-WRONG : 0   <<< must stay 0
 
-  RECALL on real-decision queries: 46/51 = 90%
+  RECALL on real-decision queries: 45/51 = 88%
 ```
 
 ## Categories
-Paraphrases · never-discussed topics · nonsense · typos · multi-topic · other languages ·
-**false-premise provocations** ('didn't we decide to drop Postgres?' — no, we kept it).
+Paraphrases · never-discussed topics · **lexical traps** · nonsense · typos · multi-topic ·
+other languages · **false-premise provocations** ('didn't we decide to drop Postgres?' — no).
+
+## Worst-case retrieval (why this number is trustworthy)
+This suite runs the grounding gate against a **permissive** RTS mirror (`loose_recall`): it
+returns any thread whose parent shares *any* content word with the query — a **superset** of
+what live RTS returns. So it deliberately surfaces the off-topic arc for a lexical trap ('buy
+a boat' pulls the 'BUYING auth (Auth0)' thread via *buy*) and forces the gate to reject it. If
+CONFIDENT-WRONG is 0 under retrieval looser than live, it is 0 live. (The ranking benchmark
+in `run.py` keeps the selective mirror — that one measures recall, not worst-case safety.)
 
 ## Why CONFIDENT-WRONG stays at 0
 - The **judge** gates chit-chat/logistics/nonsense before any search.
-- The **grounding invariant** (deja/arc.py): a standing decision is shown only if it's on
-  the query's topic (named-product guard), a genuine decision, and sourced by a permalink.
+- The **grounding gate** (deja/arc.py `_grounded`): a decision is shown only if one of the
+  query's *distinctive subject words* actually appears in the retrieved threads. A match on
+  decision/action vocabulary alone (buy · build · migrate · drop · launch · roll · stay) is
+  NOT a topic match, so 'buy a boat' ≠ 'buy auth'. This fires for EVERY query, not just ones
+  that name a capitalized product — the hole that produced the live 'buy a boat' → Auth0 bug.
 - The **decision state machine**: the standing decision is DERIVED from the last
   state-changing transition (adopted/reversed), not guessed from recency; a trailing
   'revived' doesn't overturn it. Provocations get the real decision or nothing — never the
   premise parroted back.
 
-## The remaining misses (honest)
-- Terse 'Postgres or Mongo?' variants: the decision lives in a *reply* ('going with
-  Postgres') while the thread's parent proposes *MongoDB*. RTS matches parents, and the
-  exact-token mirror scores this below its relevance floor — a conservative under-report;
-  live RTS's fuzzier match likely finds it (the fuller 'Postgres or Mongo for the datastore'
-  already passes). We chose not to loosen the mirror (it started cross-matching topics).
-- One French phrasing ('déploiement continu'): **Déjà is monolingual (English).** Bridging
-  other languages needs the LLM translation the live card path keeps off for speed. A named
-  limit, not a hidden failure.
+## The remaining misses (honest — silence, never a wrong answer)
+- **Other languages** ('déploiement continu', 'Postgres oder Mongo'): **Déjà is monolingual
+  (English).** Bridging languages needs the LLM translation the live card keeps off for speed.
+- **'did we already launch GA?'**: the only subject word is the 2-letter 'GA'; 'launch' is
+  generic. Nothing distinctive survives, so the gate stays silent rather than guess — the
+  deliberate cost of silencing 'drop the ball on the launch'. Direct phrasings ('launching GA
+  or staying in beta?', 'when's the public launch?') still resolve.
+- A terse multi-topic + one provocation whose subject lives in a reply, not the matched parent.
 
-Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the local mirror
-calibrated to live. Run: `python benchmarks/adversarial.py --md`.
+Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the permissive mirror.
+Run: `python benchmarks/adversarial.py --md`.

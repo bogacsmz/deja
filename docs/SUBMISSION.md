@@ -83,9 +83,9 @@ Measured on the **exact live pipeline** — every case runs `judge(sentence) →
 LLM trigger and retrieval the live card uses.
 
 **On a held-out set we never tuned on:** single-hit search surfaces the standing decision **1/6**
-times and drifts onto an unrelated decision **1/4** times. **Déjà → 4/6, and never invents one
-(0/4).** On the development set Déjà reaches **6/6** recurring decisions, single **7/7**, and **0**
-false decisions.
+times and drifts onto an unrelated decision **1/4** times. **Déjà → 4/6 recurring, 3/5 single, and
+never invents one (0/4).** On the development set Déjà reaches **6/6** recurring decisions, single
+**7/7**, and **0** false decisions.
 
 > **We surface this, we don't hide it (Legibright DNA):** Slack's Real-Time Search is rate-limited to
 > roughly **one call every few minutes** (measured `Retry-After: 288s`), so a 100+-query *live*
@@ -102,21 +102,28 @@ false decisions.
 
 A jury will type anything into the sandbox. **Principle: silence is cheap, a confident wrong answer
 is fatal — but a silent bot is a cheap victory, so we measure recall too.**
-`benchmarks/adversarial.py` runs the full live pipeline over **75 hostile queries** (paraphrases,
-never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations)
-and splits the outcome honestly:
+`benchmarks/adversarial.py` runs the full live pipeline over **83 hostile queries** (paraphrases,
+never-discussed topics, **lexical traps**, nonsense, typos, multi-topic, other languages,
+false-premise provocations) and splits the outcome honestly:
 
-> **correct 46 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** → **recall 46/51 = 90%** on the
+> **correct 45 · MISS 6 · correct-silent 32 · CONFIDENT-WRONG 0** → **recall 45/51 = 88%** on the
 > queries that have a real decision to find, with **zero** confident-wrong answers.
+
+It runs against a **permissive** RTS mirror — a *superset* of what live search returns — so a lexical
+trap deliberately surfaces the off-topic arc ("did we decide to **buy** a boat?" pulls the "we're
+**BUYING** auth (Auth0)" thread) and the **grounding gate** must reject it. Confident-wrong 0 under
+retrieval looser than live means confident-wrong 0 live.
 
 Déjà is a decision **engine**, not a search box: each retrieved thread is a state-machine transition
 (proposed → adopted → reversed → revived) and the standing decision is *derived* from the last
-state-changing one, so a re-opened topic never overturns the decision on record. A **grounding
-invariant** (on-topic + genuine + sourced, else INCONCLUSIVE) keeps confident-wrong at 0; provocations
-get the *actual* decision (contradicting the false premise) or nothing. The 5 misses are honest
-("Postgres or Mongo?" — the decision lives in a reply while the parent proposes MongoDB; one French
-phrasing). Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus **rate-limit grace**: when Slack
-throttles the search, Déjà says so ("ask again in a minute") instead of going silent.
+state-changing one, so a re-opened topic never overturns the decision on record. The **grounding
+gate** (`deja/arc.py` `_grounded`, on EVERY query) shows a decision only if one of the query's
+*distinctive subject words* actually appears in the retrieved threads — a shared decision/action verb
+(buy · migrate · drop · launch · roll · stay) is **not** a topic match, so "buy a boat" ≠ "buy auth".
+Provocations get the *actual* decision (contradicting the false premise) or nothing. The 6 misses are
+honest silences, never wrong answers (other-language phrasings — Déjà is monolingual; `Mongo`≠`MongoDB`
+and `authentication`≠`auth` exact-token gaps). Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus
+**rate-limit grace**: when Slack throttles the search, Déjà says so ("ask again in a minute").
 
 ## Privacy
 
