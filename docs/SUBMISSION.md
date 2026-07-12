@@ -100,19 +100,23 @@ false decisions.
 
 ## Robustness — the number we lead with
 
-A jury will type anything into the sandbox, so we hardened for it. **Principle: silence is cheap, a
-confident wrong answer is fatal.** `benchmarks/adversarial.py` runs the full live pipeline over **75
-hostile queries** — paraphrases, never-discussed topics, nonsense, typos, multi-topic, other
-languages, and **false-premise provocations** ("didn't we decide to drop Postgres?" — no, we kept
-it):
+A jury will type anything into the sandbox. **Principle: silence is cheap, a confident wrong answer
+is fatal — but a silent bot is a cheap victory, so we measure recall too.**
+`benchmarks/adversarial.py` runs the full live pipeline over **75 hostile queries** (paraphrases,
+never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations)
+and splits the outcome honestly:
 
-> **correct 39 · correct-inconclusive 36 (safe silence) · CONFIDENT-WRONG 0.**
+> **correct 43 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** → **recall 43/48 = 90%** on the
+> queries that have a real decision to find, with **zero** confident-wrong answers.
 
-Zero confident-wrong answers. A **grounding invariant** enforces it: a standing decision is shown
-only if it's on the query's topic, a genuine decision, and sourced by a permalink — otherwise
-INCONCLUSIVE, never a guess. Provocations get the *actual* decision (which contradicts the false
-premise) or nothing. Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus **rate-limit grace**: when
-Slack throttles the search, Déjà says so ("ask again in a minute") instead of going silent.
+Déjà is a decision **engine**, not a search box: each retrieved thread is a state-machine transition
+(proposed → adopted → reversed → revived) and the standing decision is *derived* from the last
+state-changing one, so a re-opened topic never overturns the decision on record. A **grounding
+invariant** (on-topic + genuine + sourced, else INCONCLUSIVE) keeps confident-wrong at 0; provocations
+get the *actual* decision (contradicting the false premise) or nothing. The 5 misses are honest
+("Postgres or Mongo?" — the decision lives in a reply while the parent proposes MongoDB; one French
+phrasing). Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus **rate-limit grace**: when Slack
+throttles the search, Déjà says so ("ask again in a minute") instead of going silent.
 
 ## Privacy
 

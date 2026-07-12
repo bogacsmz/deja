@@ -58,9 +58,11 @@ unrelated decision **1/4** times. **Déjà → 4/6, never invents one (0/4).** (
 ## Robustness — silence is cheap, a confident wrong answer is fatal
 
 `benchmarks/adversarial.py` runs the live pipeline over **75 hostile queries** (paraphrases,
-never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations):
-**correct 39 · safe-silence 36 · CONFIDENT-WRONG 0.** A grounding invariant (on-topic + genuine +
-sourced, else INCONCLUSIVE) enforces the zero. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
+never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations)
+and splits the result honestly: **correct 43 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** →
+**recall 90%, zero confident-wrong.** Déjà derives the standing decision from a state machine
+(proposed → adopted → reversed → revived), and a grounding invariant (on-topic + genuine + sourced,
+else INCONCLUSIVE) keeps confident-wrong at 0. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 
 ## MCP — query Déjà's memory from any agent
 ```bash
