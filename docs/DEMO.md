@@ -56,6 +56,6 @@ screen-recording of the live cards as the ultimate fallback.
 
 ## Talking points (one line each)
 - **Non-disruptive:** silent unless there's a real past decision — no channel spam.
-- **Permission-aware:** searches only channels *you* can see (RTS on the user token).
+- **Permission-scoped:** searches only channels the *installing account* can see (RTS on that one user token; per-caller scoping = per-user OAuth, documented not shipped).
 - **Two required techs:** RTS recall + an MCP tool, sharing one engine.
 - **Honest memory:** it shows *what was decided*, pulled from the thread — not just "you discussed this."

@@ -161,7 +161,7 @@ def _footer_blocks() -> list[dict]:
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": ":lock: Only searches channels you can access   ·   :robot_face: AI-generated summaries   ·   powered by Legibright",
+                    "text": ":lock: Only searches channels this app can access   ·   :robot_face: AI-generated summaries   ·   powered by Legibright",
                 }
             ],
         }

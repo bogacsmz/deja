@@ -37,7 +37,7 @@ def test_home_view_explains_and_states_privacy():
     """It says what Déjà does and makes the permission-aware privacy promise."""
     text = _all_text(build_app_home_view())
     assert "what your team already decided" in text  # what it does
-    assert "channels you can access" in text  # permission-aware privacy promise
+    assert "channels this app can access" in text  # accurate permission-scope promise (installer, not viewer)
 
 
 def test_home_view_ignores_legacy_args():

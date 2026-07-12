@@ -1,9 +1,11 @@
 """Déjà over HTTP — an MCP server the Slack **Slackbot MCP Client** connects to.
 
-Separate process from the socket-mode agent (`slack run`): it publishes the same `recall_memory`
-tool (reusing `deja.memory.recall_memories`) over streamable-HTTP at `/mcp`, behind Slack request-
-signature verification. Uses `slack_identity_auth` — Slack signs every request and delivers the
-caller's identity in `_meta.slack`, so recall stays permission-aware without a separate user OAuth.
+Separate process from the socket-mode agent (`slack run`): it publishes `recall_memory` and
+`check_decision` (reusing `deja.memory` / `deja.govern`) over streamable-HTTP at `/mcp`, behind Slack
+request-signature verification (`slack_identity_auth` — every request is signed by Slack; unsigned or
+forged requests are rejected 401, fail-closed). Retrieval runs on the single INSTALLER user token
+(`SLACK_USER_TOKEN`), so it is scoped to the channels the installing account can access — NOT to the
+calling user. Per-caller scoping would need per-user OAuth (documented, not shipped).
 
 Run (expose with ngrok; point the manifest `mcp_servers` url at `<ngrok>/mcp`):
     SLACK_SIGNING_SECRET=… python -m deja.mcp_http
@@ -57,8 +59,8 @@ def render_memory(query: str, result: dict) -> str:
     title="Recall team memory",
     description=(
         "Search this Slack workspace's history for prior decisions or claims relevant to a "
-        "question, and return the concrete past thread plus what the team decided. Permission-"
-        "aware — only channels the caller can access. Use before acting on a proposal "
+        "question, and return the concrete past thread plus what the team decided. Scoped to the "
+        "channels the installing account can access (not per-caller). Use before acting on a proposal "
         "('should we migrate to X?') to check whether the team already discussed or tried it."
     ),
     annotations=ToolAnnotations(readOnlyHint=True),
@@ -208,7 +210,8 @@ def main() -> None:
     load_dotenv(
         ".env", override=False
     )  # SLACK_SIGNING_SECRET + SLACK_USER_TOKEN for the running server
-    port = int(os.environ.get("DEJA_MCP_HTTP_PORT", "3000"))
+    # Railway (and most PaaS) inject the public port as $PORT; fall back to DEJA_MCP_HTTP_PORT/3000 locally.
+    port = int(os.environ.get("PORT") or os.environ.get("DEJA_MCP_HTTP_PORT", "3000"))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 

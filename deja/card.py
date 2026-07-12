@@ -15,7 +15,7 @@ from deja.conflict import ConflictWarning
 from deja.models import Hit
 
 # Privacy + AI-transparency footer (Slack agent-design: label AI-generated content).
-_FOOTER = ":robot_face: AI-generated summary · :lock: only channels you can access · powered by Legibright"
+_FOOTER = ":robot_face: AI-generated summary · :lock: only channels this app can access · powered by Legibright"
 
 # ONE consistent icon language for the decision state machine (used by the card + App Home).
 _STATE_ICON = {"proposed": "💡", "adopted": "✅", "reversed": "↩️", "revived": "🔁"}
@@ -133,7 +133,7 @@ def build_memory_card(
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": ":lock: Only searches channels you can access · powered by Legibright",
+                    "text": ":lock: Only searches channels this app can access · powered by Legibright",
                 }
             ],
         }

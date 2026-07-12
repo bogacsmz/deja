@@ -79,7 +79,7 @@ launch) is not a topic match. See [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 
 ## Does the brake fire on the right proposal? (governance benchmark)
 
-`benchmarks/governance.py` runs 23 labelled proposals through the **exact live verdict**
+`benchmarks/governance.py` runs 27 labelled proposals through the **exact live verdict**
 (`judge → check_decision`) — genuine conflicts, aligned proposals, never-discussed topics, lexical
 traps, and discussed-but-undecided. Run once, no tuning: **false CONFLICTS 0 · sourceless verdict 0 ·
 owner attribution 11/11 · precision 100% / recall 62%.** The 3 missed brakes are one honest class
@@ -108,7 +108,8 @@ no sources downgrades to INCONCLUSIVE** — a fabricated brake is worse than non
 
 `recall_memory(query, channel=None, limit=3)` → `{summary, memories:[{source_message,
 what_happened_next, channel, author, ts, permalink, score}], searched}` is unchanged and still there
-for pure lookup. Both are permission-aware (user token). Verify end-to-end with `python scripts/mcp_smoke.py`.
+for pure lookup. Both run on the installer's user token, so they only ever reach the channels the
+installing account can access (not per-caller — see Honest limits). Verify end-to-end with `python scripts/mcp_smoke.py`.
 
 ```bash
 python -m deja.mcp_server   # stdio (Cursor/Claude Desktop); DEJA_MCP_TRANSPORT=streamable-http for remote

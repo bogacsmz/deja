@@ -28,7 +28,7 @@ it, drops a sourced brake. Same engine, **two consumers**:
 > ⚠️ **Conflicts with a standing decision** · #eng
 > *"Opening a PR to migrate the job queue to Temporal."* — the team **rolled this back** Apr 23 (@maya):
 > *"duplicate task execution under a network partition… sticking with Redis."*
-> [🔗 Open source thread] · 🔒 Only searches channels you can access
+> [🔗 Open source thread] · 🔒 Only searches channels this app can access
 
 Under the hood is the **decision arc**: threads debated repeatedly across months are stitched into a
 timeline with the **standing decision**, its **owner**, how many times it's come up, and every source
@@ -39,7 +39,8 @@ that feeds a live Slack **Canvas** and the App Home digest.
 ## The two required technologies (and what we added)
 
 1. **Real-Time Search (RTS)** — `deja/recall.py` calls `assistant.search.context` with the user's
-   token to find prior discussions, permission-aware by construction.
+   token to find prior discussions — scoped to the channels the installing account can access (not
+   per-caller; see Honest limits).
 2. **MCP** — `deja/mcp_server.py` publishes **two** tools (FastMCP, stdio + HTTP): `recall_memory`
    (lookup) and **`check_decision`** (the governance verdict — the interface contract other agents
    adopt). Both share one engine.
@@ -139,7 +140,7 @@ launch GA?", whose only subject is the 2-letter "GA"). Full run in [`ROBUSTNESS.
 
 ## Governance — does the brake fire on the right proposal?
 
-`benchmarks/governance.py` runs 23 labelled proposals through the **exact live verdict**
+`benchmarks/governance.py` runs 27 labelled proposals through the **exact live verdict**
 (`judge → check_decision`): genuine conflicts, aligned proposals, never-discussed topics, lexical
 traps, discussed-but-undecided. Run once, no tuning:
 
@@ -178,12 +179,23 @@ INCONCLUSIVE are visible. Loop-safety is covered by hermetic tests (`tests/test_
   expansion. We publish the real number (recurring 4/6) rather than the tuned one.
 - **Owner attribution is measured, not assumed.** 11/11 right here; if a future regression makes it
   wrong, the honest fix is to show no owner rather than the wrong one.
+- **Permission scope is the installer's, not the viewer's.** Déjà searches with the installing
+  account's user token, so it reaches exactly the channels that one account can — not the channels the
+  *asking* user can. Per-viewer permission scoping requires per-user OAuth: documented here, not
+  shipped. We say "channels this app can access," never "channels *you* can access."
+
+## Security
+
+The MCP endpoint verifies Slack's request signature and is **fail-closed**: an unsigned or forged
+request gets `401` before it can reach a tool — no valid Slack identity, no access. The signing secret
+is read per-request and, when unset, every request is rejected (never fail-open). Retrieval is scoped
+to one installer token (above), and secrets live only in `.env` (git-ignored, never committed).
 
 ## Privacy
 
-Déjà searches on the user's behalf with their RTS token, so it only ever sees channels that user can
-already access — it never widens anyone's reach. Secrets live only in `.env` (git-ignored). In
-production this becomes per-user OAuth.
+Déjà searches with the installing account's RTS token, so it only ever sees channels **that account**
+can already access — it never widens anyone's reach beyond one real user's permissions. Secrets live
+only in `.env` (git-ignored). In production this becomes per-user OAuth (per-viewer scoping).
 
 ## Built with
 
