@@ -17,8 +17,12 @@ import re
 from deja.arc import recall_arc
 from deja.card import build_arc_card
 from deja.conflict import detect_conflict
-from deja.recall import recall
+from deja.recall import RateLimitedError, recall
 from deja.trigger import judge
+
+# Sentinel recall_card returns when Slack's search is throttling us — so the caller can say so out
+# loud instead of going silent (silence reads as 'broken', especially to someone testing fast).
+RATE_LIMITED = {"rate_limited": True}
 
 _log = logging.getLogger(__name__)
 _SEED_MARKER = re.compile(r"\s*‹deja-seed:[^›]*›")
@@ -71,7 +75,10 @@ async def recall_card(
 
     # expand=False: the live card stays fast + light on the rate-limited RTS (no LLM in the hot
     # path). Seeded/real topics retrieve directly; MCP + benchmark keep full expansion.
-    arc = await recall_arc(decision.query, exclude_ts=exclude_ts, expand=False)
+    try:
+        arc = await recall_arc(decision.query, exclude_ts=exclude_ts, expand=False)
+    except RateLimitedError:
+        return RATE_LIMITED  # tell the user to retry, don't fail silently
     if arc is None or (arc.inconclusive and not arc.is_recurring):
         return None  # nothing found, or just a single unresolved proposal — stay quiet
 

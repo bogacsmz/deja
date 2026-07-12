@@ -39,7 +39,9 @@ async def handle_message(
     thread_ts = event.get("thread_ts") or event["ts"]
     try:
         card = await recall_card(text, client, exclude_ts=event.get("ts"))
-        if card:
+        # Ambient is non-disruptive: post a card when we found one, but stay silent on a rate-limit
+        # (an unsolicited 'I'm throttled' on every message would be noise — the @mention path says it).
+        if card and not card.get("rate_limited"):
             await say(blocks=card["blocks"], text=card["text"], thread_ts=thread_ts)
     except Exception as e:
         logger.exception(f"Déjà auto-trigger failed: {e}")

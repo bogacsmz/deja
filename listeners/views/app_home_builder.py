@@ -88,6 +88,22 @@ def build_app_home_view(
             "text": {
                 "type": "mrkdwn",
                 "text": (
+                    ":sparkles: *Try these* (mention me in any channel I'm in):\n"
+                    "• `@Déjà should we migrate our job queue to Temporal?`\n"
+                    "• `@Déjà should we adopt Datadog for monitoring?`\n"
+                    "• `@Déjà should we switch to continuous deploy?`\n"
+                    "• `@Déjà should we adopt an RFC / design-doc process?`  _(watch me say INCONCLUSIVE)_\n"
+                    "• `@Déjà let's migrate to Temporal for the new pipeline`  _(watch the contradiction warning)_\n"
+                    "Then hit *💾 Save decision* on a card — it lands in the digest above + the team Canvas."
+                ),
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
                     "*How it works*\n"
                     "1️⃣  You post something like _“should we migrate to Temporal?”_\n"
                     "2️⃣  I search your history and check whether it was discussed before\n"

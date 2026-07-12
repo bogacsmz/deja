@@ -163,5 +163,370 @@
   "should_recall": false,
   "query": "",
   "reason": "logistics question about current on-call schedule"
+ },
+ "are we on Temporal or Redis for jobs?": {
+  "should_recall": true,
+  "query": "Temporal Redis jobs",
+  "reason": "past decision on job queue tech"
+ },
+ "did the Temporal migration work out?": {
+  "should_recall": true,
+  "query": "Temporal migration",
+  "reason": "asking about past migration outcome"
+ },
+ "what happened with the Temporal thing?": {
+  "should_recall": true,
+  "query": "Temporal",
+  "reason": "asks about past Temporal discussion"
+ },
+ "should we move our job queue to Temporal?": {
+  "should_recall": true,
+  "query": "Temporal job queue",
+  "reason": "proposal to migrate job queue"
+ },
+ "is Temporal our workflow engine?": {
+  "should_recall": true,
+  "query": "Temporal workflow engine",
+  "reason": "question about tooling choice"
+ },
+ "remind me why we didn't go with Temporal": {
+  "should_recall": true,
+  "query": "Temporal workflow",
+  "reason": "past decision on Temporal"
+ },
+ "are we paying for Datadog?": {
+  "should_recall": true,
+  "query": "Datadog billing",
+  "reason": "question about tool spend previously discussed"
+ },
+ "what's our monitoring vendor?": {
+  "should_recall": true,
+  "query": "monitoring vendor",
+  "reason": "question about team tooling choice"
+ },
+ "should we buy Datadog?": {
+  "should_recall": true,
+  "query": "buy Datadog",
+  "reason": "purchasing decision likely discussed before"
+ },
+ "did we go with Datadog for observability?": {
+  "should_recall": true,
+  "query": "Datadog observability",
+  "reason": "past tooling decision"
+ },
+ "can we add Datadog APM?": {
+  "should_recall": true,
+  "query": "Datadog APM",
+  "reason": "proposal to adopt monitoring tool"
+ },
+ "how do we ship to production?": {
+  "should_recall": true,
+  "query": "ship production deploy",
+  "reason": "question about team deployment process"
+ },
+ "do we deploy on merge?": {
+  "should_recall": true,
+  "query": "deploy merge CI",
+  "reason": "question about deployment process"
+ },
+ "release trains or continuous deploy?": {
+  "should_recall": true,
+  "query": "release trains continuous deploy",
+  "reason": "deployment strategy decision"
+ },
+ "Postgres or Mongo?": {
+  "should_recall": true,
+  "query": "Postgres Mongo database",
+  "reason": "database choice decision"
+ },
+ "what's our primary datastore?": {
+  "should_recall": true,
+  "query": "primary datastore",
+  "reason": "substantive architecture question"
+ },
+ "should we use MongoDB?": {
+  "should_recall": true,
+  "query": "MongoDB database",
+  "reason": "database choice decision likely discussed before"
+ },
+ "monorepo or many repos?": {
+  "should_recall": true,
+  "query": "monorepo multi-repo",
+  "reason": "repo structure decision"
+ },
+ "do we self-host Kubernetes?": {
+  "should_recall": true,
+  "query": "self-host Kubernetes",
+  "reason": "infra question likely discussed before"
+ },
+ "should we run our own k8s?": {
+  "should_recall": true,
+  "query": "self-hosted Kubernetes",
+  "reason": "infrastructure decision likely debated before"
+ },
+ "usage-based or seat-based pricing?": {
+  "should_recall": true,
+  "query": "pricing model seat usage-based",
+  "reason": "pricing model decision"
+ },
+ "did we build or buy auth?": {
+  "should_recall": true,
+  "query": "build buy auth",
+  "reason": "past build-vs-buy decision on authentication"
+ },
+ "should we adopt MUI?": {
+  "should_recall": true,
+  "query": "MUI component library",
+  "reason": "proposal to adopt a tool"
+ },
+ "what did we pick for CSS?": {
+  "should_recall": true,
+  "query": "CSS framework",
+  "reason": "asking about a past tech-stack decision"
+ },
+ "is standup sync or async?": {
+  "should_recall": true,
+  "query": "standup sync async",
+  "reason": "team process decision worth recalling"
+ },
+ "should we adopt an RFC process?": {
+  "should_recall": true,
+  "query": "RFC process",
+  "reason": "proposal to adopt a process"
+ },
+ "did we decide on a design-doc process?": {
+  "should_recall": true,
+  "query": "design-doc process",
+  "reason": "asks about a past team decision"
+ },
+ "do we have an RFC process now?": {
+  "should_recall": true,
+  "query": "RFC process",
+  "reason": "question about existing team process"
+ },
+ "should we adopt GraphQL?": {
+  "should_recall": true,
+  "query": "GraphQL adoption API",
+  "reason": "team may have debated GraphQL before"
+ },
+ "are we moving to Kafka?": {
+  "should_recall": true,
+  "query": "Kafka migration",
+  "reason": "question about a past infra decision"
+ },
+ "should we rewrite in Rust?": {
+  "should_recall": true,
+  "query": "rewrite Rust",
+  "reason": "recurring rewrite proposal"
+ },
+ "should we use Svelte for the frontend?": {
+  "should_recall": true,
+  "query": "Svelte frontend",
+  "reason": "frontend framework proposal"
+ },
+ "gRPC or REST for internal APIs?": {
+  "should_recall": true,
+  "query": "gRPC REST API",
+  "reason": "recurring internal API protocol decision"
+ },
+ "should we adopt Terraform?": {
+  "should_recall": true,
+  "query": "Terraform",
+  "reason": "tooling adoption proposal"
+ },
+ "do we use HashiCorp Vault?": {
+  "should_recall": true,
+  "query": "HashiCorp Vault",
+  "reason": "substantive question about tooling"
+ },
+ "Elasticsearch or OpenSearch?": {
+  "should_recall": true,
+  "query": "Elasticsearch OpenSearch",
+  "reason": "tech choice likely debated before"
+ },
+ "should we put analytics in Snowflake?": {
+  "should_recall": true,
+  "query": "Snowflake analytics",
+  "reason": "data warehouse decision"
+ },
+ "Nomad instead of our current setup?": {
+  "should_recall": true,
+  "query": "Nomad orchestration",
+  "reason": "proposal to switch tooling"
+ },
+ "should we introduce RabbitMQ?": {
+  "should_recall": true,
+  "query": "RabbitMQ message queue",
+  "reason": "proposal to adopt a specific technology"
+ },
+ "did we standardize on Redux?": {
+  "should_recall": true,
+  "query": "Redux state management",
+  "reason": "past standardization decision"
+ },
+ "Webpack or Vite?": {
+  "should_recall": true,
+  "query": "Webpack Vite bundler",
+  "reason": "build tooling decision"
+ },
+ "should we adopt a service mesh?": {
+  "should_recall": true,
+  "query": "service mesh",
+  "reason": "architecture adoption decision"
+ },
+ "are we going multi-cloud?": {
+  "should_recall": true,
+  "query": "multi-cloud",
+  "reason": "strategic infrastructure question likely discussed before"
+ },
+ "purple monkey dishwasher": {
+  "should_recall": false,
+  "query": "",
+  "reason": "nonsense phrase, not a substantive topic"
+ },
+ "asdfghjkl qwerty": {
+  "should_recall": false,
+  "query": "",
+  "reason": "gibberish keyboard mash, not substantive"
+ },
+ "should we deploy the moon to Redis?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "nonsensical joke message, not a substantive proposal"
+ },
+ "what color is the database?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "nonsensical, not a substantive topic"
+ },
+ "how many Temporals fit in a Datadog?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "nonsensical joke, not substantive"
+ },
+ "banana continuous coffee": {
+  "should_recall": false,
+  "query": "",
+  "reason": "gibberish, not substantive"
+ },
+ "is the standup a Kubernetes?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "nonsensical, not a substantive question"
+ },
+ "do we serve tacos on Tuesdays?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "casual logistics question, not a substantive decision or claim"
+ },
+ "shoud we migrat to Temporl?": {
+  "should_recall": true,
+  "query": "Temporal migration",
+  "reason": "proposal to adopt Temporal"
+ },
+ "Datadgo monitorng vendorr?": {
+  "should_recall": true,
+  "query": "Datadog monitoring",
+  "reason": "monitoring vendor question"
+ },
+ "continous deploi or relese trains?": {
+  "should_recall": true,
+  "query": "continuous deployment release trains",
+  "reason": "deployment process decision"
+ },
+ "Postgress or Mongo db?": {
+  "should_recall": true,
+  "query": "Postgres MongoDB",
+  "reason": "database choice decision"
+ },
+ "shud we uze MUI?": {
+  "should_recall": true,
+  "query": "MUI component library",
+  "reason": "proposal to adopt a UI library"
+ },
+ "should we use Temporal and Datadog?": {
+  "should_recall": true,
+  "query": "Temporal Datadog",
+  "reason": "tooling decision likely discussed before"
+ },
+ "Postgres or Mongo, and monorepo or not?": {
+  "should_recall": true,
+  "query": "Postgres Mongo monorepo",
+  "reason": "database and repo structure decision"
+ },
+ "Datadog for monitoring and Kafka for events?": {
+  "should_recall": true,
+  "query": "Datadog Kafka",
+  "reason": "tooling stack decision"
+ },
+ "Temporal'a geçmeli miyiz yoksa Redis mi?": {
+  "should_recall": true,
+  "query": "Temporal Redis",
+  "reason": "tech choice decision"
+ },
+ "¿deberíamos usar Datadog para monitoreo?": {
+  "should_recall": true,
+  "query": "Datadog monitoring",
+  "reason": "tooling proposal likely discussed before"
+ },
+ "faut-il adopter le déploiement continu?": {
+  "should_recall": true,
+  "query": "déploiement continu",
+  "reason": "adoption decision question"
+ },
+ "sollten wir Postgres oder Mongo nehmen?": {
+  "should_recall": true,
+  "query": "Postgres Mongo database",
+  "reason": "database choice decision"
+ },
+ "didn't we decide to drop Postgres?": {
+  "should_recall": true,
+  "query": "drop Postgres",
+  "reason": "references a past decision"
+ },
+ "we agreed to buy Datadog, right?": {
+  "should_recall": true,
+  "query": "Datadog purchase",
+  "reason": "claims a past buying decision"
+ },
+ "we're on Temporal now, correct?": {
+  "should_recall": true,
+  "query": "Temporal migration",
+  "reason": "verifying a past infrastructure decision"
+ },
+ "we killed continuous deploy, didn't we?": {
+  "should_recall": true,
+  "query": "continuous deploy",
+  "reason": "past decision about deployment process"
+ },
+ "we standardized on MUI, yeah?": {
+  "should_recall": true,
+  "query": "MUI component library",
+  "reason": "confirming a past standardization decision"
+ },
+ "we went with usage-based pricing, right?": {
+  "should_recall": true,
+  "query": "usage-based pricing",
+  "reason": "past pricing decision"
+ },
+ "we self-host Kubernetes now, don't we?": {
+  "should_recall": true,
+  "query": "Kubernetes self-host",
+  "reason": "infra decision worth checking past discussion"
+ },
+ "we built our own auth in the end, correct?": {
+  "should_recall": true,
+  "query": "custom auth build",
+  "reason": "question about past auth decision"
+ },
+ "we're using MongoDB as the main DB, right?": {
+  "should_recall": true,
+  "query": "MongoDB main database",
+  "reason": "database choice question"
+ },
+ "we brought back the sync standup, yeah?": {
+  "should_recall": true,
+  "query": "sync standup",
+  "reason": "asks about a past team decision"
  }
 }

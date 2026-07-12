@@ -30,6 +30,11 @@ from deja.models import Hit
 
 _log = logging.getLogger(__name__)
 
+
+class RateLimitedError(RuntimeError):
+    """RTS returned 'ratelimited' after our retries — surface it, don't fail silently."""
+
+
 RTS_METHOD = "assistant.search.context"
 DEFAULT_CHANNEL_TYPES = ["public_channel", "private_channel", "mpim", "im"]
 _WORD = re.compile(r"[a-z0-9]{3,}")
@@ -179,6 +184,8 @@ def recall(
         err = (e.response.data or {}).get("error")
         needed = (e.response.data or {}).get("needed")
         _log.warning("recall: RTS call failed: %s (needed=%s)", err, needed)
+        if err == "ratelimited":
+            raise RateLimitedError("RTS is rate-limiting the search") from e
         raise RuntimeError(
             f"RTS call failed: {err}"
             + (f" (needed scope: {needed})" if needed else "")

@@ -14,7 +14,12 @@ import re
 
 from slack_sdk.web.async_client import AsyncWebClient
 
-from deja.recall import _addressed_to_deja, _is_deja_card, recall
+from deja.recall import (
+    RateLimitedError,
+    _addressed_to_deja,
+    _is_deja_card,
+    recall,
+)
 from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
 _log = logging.getLogger(__name__)
@@ -78,6 +83,8 @@ async def recall_memories(
         # Over-fetch: RTS returns individual messages, so one thread can appear multiple times
         # (its parent AND a reply both match). We dedupe by thread root below, then cap at `limit`.
         hits = await asyncio.to_thread(_recall, query, limit=max(limit * 3, 12))
+    except RateLimitedError:
+        raise  # let the caller show a 'try again in a minute' message, not silence
     except Exception as e:  # noqa: BLE001 — surface as a clean summary, never throw to the client
         _log.warning("memory: recall failed for %r: %s", query, e)
         return _result(f"Search failed: {e}", [], query)

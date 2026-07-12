@@ -44,3 +44,18 @@ def test_resolve_name_passthrough_without_client():
     assert (
         asyncio.run(_resolve_name(None, "U0ABC123")) == "U0ABC123"
     )  # no client -> id kept
+
+
+def test_rate_limit_propagates_not_swallowed():
+    import pytest
+
+    from deja.memory import recall_memories
+    from deja.recall import RateLimitedError
+
+    def _boom(*a, **k):
+        raise RateLimitedError("throttled")
+
+    with pytest.raises(
+        RateLimitedError
+    ):  # must surface so the caller can say 'try again'
+        asyncio.run(recall_memories("anything", recall_fn=_boom))

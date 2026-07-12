@@ -290,7 +290,8 @@ def _primary_terms(query: str) -> list[str]:
     if subjects:
         return subjects
     words = sorted(
-        {w for w in _ANCHOR_WORD.findall(query.lower())} - _STOP, key=lambda w: (-len(w), w)
+        {w for w in _ANCHOR_WORD.findall(query.lower())} - _STOP,
+        key=lambda w: (-len(w), w),
     )
     return words[:1]
 

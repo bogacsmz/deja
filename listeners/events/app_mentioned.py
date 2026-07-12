@@ -45,7 +45,13 @@ async def handle_app_mentioned(
         card = await recall_card(
             text, client, exclude_ts=event.get("ts"), on_status=on_status
         )
-        if card:
+        if card and card.get("rate_limited"):
+            await client.chat_update(
+                channel=ch,
+                ts=ts,
+                text=":hourglass_flowing_sand: Slack search is rate-limiting me right now — ask again in a minute.",
+            )
+        elif card:
             await client.chat_update(
                 channel=ch, ts=ts, blocks=card["blocks"], text=card["text"]
             )
