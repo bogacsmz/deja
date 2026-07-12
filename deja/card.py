@@ -270,6 +270,6 @@ def build_arc_card(
     return blocks, fallback
 
 
-def _short(text: str, n: int = 120) -> str:
+def _short(text: str, n: int = 160) -> str:
     text = " ".join((text or "").split())
     return text if len(text) <= n else text[:n].rstrip() + "…"

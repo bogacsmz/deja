@@ -43,10 +43,18 @@ _RTS_CACHE: dict[tuple[str, int], list[Hit]] = {}
 # and loop. All of Déjà's messages carry its name or tagline, so drop any hit that looks like one.
 _DEJA_FINGERPRINTS = ("déjà", "your team already discussed", "powered by legibright")
 
+# Nor should questions ADDRESSED to Déjà count as team discussion — otherwise asking the same thing
+# three times inflates the "discussed N×" counter. Drop any hit that @-mentions the bot.
+_BOT_UID = os.environ.get("DEJA_BOT_USER_ID", "")
+
 
 def _is_deja_card(snippet: str) -> bool:
     s = snippet.lower()
     return any(fp in s for fp in _DEJA_FINGERPRINTS)
+
+
+def _addressed_to_deja(snippet: str) -> bool:
+    return bool(_BOT_UID) and f"<@{_BOT_UID}>" in snippet
 
 
 def _resolve_token(explicit: str | None) -> str:
@@ -183,7 +191,10 @@ def recall(
     hits = [
         h
         for h in hits
-        if h.snippet.strip() and not _is_deja_card(h.snippet) and h.ts != exclude_ts
+        if h.snippet.strip()
+        and not _is_deja_card(h.snippet)
+        and not _addressed_to_deja(h.snippet)
+        and h.ts != exclude_ts
     ]
     # Deterministic ranking (Python sort is stable; apply least-significant key first):
     hits.sort(key=lambda h: h.ts, reverse=True)  # 3rd: newest

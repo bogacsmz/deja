@@ -133,7 +133,7 @@ def build_arc(topic: str, memories: list[dict]) -> DecisionArc | None:
                     date=date,
                     channel=m.get("channel", ""),
                     author=m.get("author", ""),
-                    summary=_short(decision or _strip_date(source)),
+                    summary=_short(decision or _strip_date(source), 220),
                     permalink=m.get("permalink", ""),
                     is_decision=bool(decision),
                 ),
@@ -358,12 +358,14 @@ async def recall_arc(
                     query, base, terms, limit, recall_fn, thread_fn
                 )
 
-    # Subject guard: a specific product named in the query must appear in the arc, else the
-    # expansion drifted to an unrelated decision — don't claim it.
+    # Subject guard: when the query names a specific product, keep ONLY the threads about it and
+    # rebuild — so an off-topic thread pulled in by a generic anchor ("migration" → the monorepo
+    # decision) can't become the standing decision. If nothing is on the named topic, claim nothing.
     subjects = _query_subjects(query)
-    if subjects and arc is not None and not arc.inconclusive:
-        if not any(_on_topic(m, subjects) for m in memories):
-            arc = None
+    if subjects and arc is not None:
+        on_topic = [m for m in memories if _on_topic(m, subjects)]
+        memories = on_topic
+        arc = build_arc(query, memories) if on_topic else None
 
     if exclude_ts and arc is not None:
         arc = build_arc(query, [m for m in memories if m.get("ts") != exclude_ts])

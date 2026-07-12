@@ -19,10 +19,28 @@ from deja.thread import fetch_thread_messages, is_thread_alive, pick_decision
 
 _log = logging.getLogger(__name__)
 _MARKER = re.compile(r"\s*‹deja-[^›]*›")  # strip any Déjà seed marker (seed/arc/noise)
+_USER_ID = re.compile(r"^[UW][A-Z0-9]{6,}$")  # a raw Slack user id, not a display name
+_NAME_CACHE: dict[str, str] = {}
 
 
 def _clean(text: str) -> str:
     return _MARKER.sub("", text or "").strip()
+
+
+async def _resolve_name(client, author: str) -> str:
+    """Turn a raw user id into a display name (cached). Non-ids (override usernames) pass through."""
+    if not author or client is None or not _USER_ID.match(author):
+        return author
+    if author in _NAME_CACHE:
+        return _NAME_CACHE[author]
+    name = author
+    try:
+        prof = (await client.users_info(user=author))["user"]["profile"]
+        name = prof.get("display_name") or prof.get("real_name") or author
+    except Exception as e:  # noqa: BLE001 — best-effort; fall back to the id
+        _log.debug("memory: users_info failed for %s: %s", author, e)
+    _NAME_CACHE[author] = name
+    return name
 
 
 def _result(summary: str, memories: list[dict], query: str) -> dict:
@@ -104,7 +122,7 @@ async def recall_memories(
                 "source_message": source,
                 "what_happened_next": decision,
                 "channel": h.channel,
-                "author": author,
+                "author": await _resolve_name(client, author),  # id -> display name
                 "ts": root_ts,
                 "permalink": h.permalink,
                 "score": h.score,
