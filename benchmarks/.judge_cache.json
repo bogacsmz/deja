@@ -578,5 +578,65 @@
   "should_recall": false,
   "query": "",
   "reason": "small talk, not recall-worthy"
+ },
+ "should the JavaScript pipeline operator use F#-style pipes?": {
+  "should_recall": true,
+  "query": "pipeline operator F# style",
+  "reason": "technical proposal/design question"
+ },
+ "is await prefix or postfix syntax in Rust?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "general programming syntax question, not a team decision/claim"
+ },
+ "are we removing dockershim from Kubernetes?": {
+  "should_recall": true,
+  "query": "dockershim removal Kubernetes",
+  "reason": "past technical decision/discussion"
+ },
+ "can we make the GIL optional in CPython?": {
+  "should_recall": true,
+  "query": "GIL optional CPython",
+  "reason": "technical proposal worth checking prior discussion"
+ },
+ "should JavaScript decorators use the static decorators design?": {
+  "should_recall": true,
+  "query": "JavaScript static decorators",
+  "reason": "technical design proposal"
+ },
+ "is the function-based component API replacing the Options API in Vue?": {
+  "should_recall": true,
+  "query": "Vue Composition API Options API",
+  "reason": "technical claim/question worth checking past discussion"
+ },
+ "should we keep using experimental legacy decorators in TypeScript?": {
+  "should_recall": true,
+  "query": "experimental legacy decorators TypeScript",
+  "reason": "prior technical decision/tooling debate worth surfacing"
+ },
+ "can we use SharedArrayBuffer enabled by default?": {
+  "should_recall": true,
+  "query": "SharedArrayBuffer default",
+  "reason": "technical proposal worth checking past discussion"
+ },
+ "should JavaScript add operator overloading?": {
+  "should_recall": true,
+  "query": "operator overloading JavaScript",
+  "reason": "language design proposal"
+ },
+ "are we adding a built-in datetime type to the Rust standard library?": {
+  "should_recall": true,
+  "query": "Rust datetime std",
+  "reason": "technical proposal/decision worth checking prior discussion"
+ },
+ "should Python switch to curly-brace blocks instead of indentation?": {
+  "should_recall": true,
+  "query": "Python curly braces indentation",
+  "reason": "language design proposal/debate"
+ },
+ "should Kubernetes replace YAML manifests with JSON?": {
+  "should_recall": true,
+  "query": "Kubernetes YAML JSON manifests",
+  "reason": "technical proposal worth checking past discussion"
  }
 }
