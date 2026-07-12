@@ -8,6 +8,7 @@ no I/O, so it's easy to validate and unit-test.
 from __future__ import annotations
 
 import json
+import re
 
 from deja.arc import DecisionArc
 from deja.conflict import ConflictWarning
@@ -355,5 +356,14 @@ def build_arc_card(
 
 
 def _short(text: str, n: int = 160) -> str:
+    """Trim to ≤ n chars, ending on a SENTENCE boundary when there's one past the halfway mark
+    (no ellipsis then — it already ends in . ! ?); otherwise on a WORD boundary with an ellipsis.
+    Never cuts mid-word."""
     text = " ".join((text or "").split())
-    return text if len(text) <= n else text[:n].rstrip() + "…"
+    if len(text) <= n:
+        return text
+    window = text[:n]
+    ends = list(re.finditer(r"[.!?](?=\s|$)", window))
+    if ends and ends[-1].end() >= n * 0.5:
+        return window[: ends[-1].end()].strip()
+    return window.rsplit(" ", 1)[0].rstrip(" ,;—-") + "…"

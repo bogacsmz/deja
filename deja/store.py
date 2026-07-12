@@ -29,16 +29,26 @@ def decision_headline(decision: str, n: int = 68) -> str:
     return head if len(head) <= n else head[:n].rstrip(" ,;—-") + "…"
 
 
-def decision_rationale(decision: str, n: int = 118) -> str:
+def decision_rationale(decision: str, n: int = 120) -> str:
     """The WHY behind a decision — the sentence(s) AFTER the first (which states the decision itself),
-    so a headline and its quote don't just repeat each other. Trimmed on a word boundary (never
-    mid-word); '' when the decision is a single sentence (no separate rationale to show)."""
+    so a headline and its quote don't just repeat each other. Returns WHOLE sentences (never a
+    mid-sentence cut): as many complete sentences as fit in `n`. '' when there's no separate rationale.
+    Only if the very first rationale sentence already exceeds `n` do we word-trim it with an ellipsis."""
     t = _LEAD.sub("", (decision or "").strip())
-    rest = " ".join(re.split(r"(?<=[.!?])\s+", t)[1:]).strip()
-    rest = " ".join(rest.split())
-    if not rest:
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", t)[1:] if s.strip()]
+    if not sentences:
         return ""
-    return rest if len(rest) <= n else rest[:n].rsplit(" ", 1)[0].rstrip(" ,;—-") + "…"
+    out = ""
+    for s in sentences:
+        cand = f"{out} {s}".strip()
+        if len(cand) <= n:
+            out = cand
+        else:
+            break
+    if out:
+        return out  # complete sentence(s), already end in . ! ? — no ellipsis
+    first = " ".join(sentences[0].split())
+    return first[:n].rsplit(" ", 1)[0].rstrip(" ,;—-") + "…"
 
 
 def _path() -> pathlib.Path:

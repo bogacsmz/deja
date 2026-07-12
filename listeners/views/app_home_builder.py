@@ -38,17 +38,27 @@ def _metrics_blocks() -> list[dict]:
             }
         ]
     top = s["top"][0]
-    most = f'most-repeated: *"{top.get("topic", "")}"* ({top.get("times_discussed", 0)}×)'
+    # Only the `header` block renders large in Block Kit — put the NUMBER there so it's the hero,
+    # with the supporting stats quiet underneath.
     blocks: list[dict] = [
         {
-            "type": "section",
+            "type": "header",
             "text": {
-                "type": "mrkdwn",
-                "text": f"🔁  *Your team keeps re-opening settled decisions.*\n"
-                f"*{s['count']}* decisions have come back up  ·  *{s['total']}×* raised in total  ·  "
-                f"*{s['channels']}* channels  ·  {most}",
+                "type": "plain_text",
+                "text": f"🔁 {s['count']} decisions keep coming back",
+                "emoji": True,
             },
-        }
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*{s['total']}×* raised  ·  *{s['channels']}* channels  ·  "
+                    f"most-repeated: *{top.get('topic', '')}* ({top.get('times_discussed', 0)}×)",
+                }
+            ],
+        },
     ]
     btns = []
     for i, d in enumerate(s["top"]):
