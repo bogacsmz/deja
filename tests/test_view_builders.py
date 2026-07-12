@@ -22,15 +22,22 @@ def test_home_view_structure():
     assert block_types.count("section") >= 2  # what it is + how it works + privacy
 
 
+def _all_text(view: dict) -> str:
+    parts: list[str] = []
+    for b in view["blocks"]:
+        if b.get("type") in ("section", "header") and isinstance(b.get("text"), dict):
+            parts.append(b["text"]["text"])
+        for e in b.get("elements", []):
+            if isinstance(e, dict) and isinstance(e.get("text"), str):
+                parts.append(e["text"])
+    return " ".join(parts)
+
+
 def test_home_view_explains_and_states_privacy():
     """It says what Déjà does and makes the permission-aware privacy promise."""
-    text = " ".join(
-        b["text"]["text"]
-        for b in build_app_home_view()["blocks"]
-        if b["type"] == "section"
-    )
-    assert "past thread" in text  # what it does
-    assert "channels" in text and "you" in text  # permission-aware privacy promise
+    text = _all_text(build_app_home_view())
+    assert "decisions your team already made" in text  # what it does
+    assert "channels you can access" in text  # permission-aware privacy promise
 
 
 def test_home_view_ignores_legacy_args():

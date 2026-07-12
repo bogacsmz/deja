@@ -16,8 +16,21 @@ from deja.models import Hit
 # Privacy + AI-transparency footer (Slack agent-design: label AI-generated content).
 _FOOTER = ":robot_face: AI-generated summary · :lock: only channels you can access · powered by Legibright"
 
-# Decision-state-machine icons for the timeline.
-_STATE_ICON = {"proposed": "💡", "adopted": "✅", "reversed": "↩️", "revived": "🔄"}
+# ONE consistent icon language for the decision state machine (used by the card + App Home).
+_STATE_ICON = {"proposed": "💡", "adopted": "✅", "reversed": "↩️", "revived": "🔁"}
+
+
+def _open_accessory(url: str) -> dict | None:
+    """A native URL button — the ONLY reliably clickable way to link a Slack row to a thread. Inline
+    `<url|↗>` mrkdwn links silently break on the `&` in Slack permalinks; a button's `url` does not."""
+    if not (url or "").startswith("http"):
+        return None
+    return {
+        "type": "button",
+        "action_id": "deja_open_thread",
+        "text": {"type": "plain_text", "text": "Open ↗", "emoji": True},
+        "url": url,
+    }
 
 
 def _epoch(ts: str) -> int:
@@ -132,6 +145,14 @@ def build_memory_card(
 
 def _save_value(query: str, arc: DecisionArc) -> str:
     """Compact payload the '💾 Save decision' button hands to its action handler (< 2000 chars)."""
+    standing = next(
+        (
+            e
+            for e in reversed(arc.timeline)
+            if e.state in ("adopted", "reversed") and e.permalink
+        ),
+        None,
+    )
     return json.dumps(
         {
             "q": query[:120],
@@ -139,6 +160,8 @@ def _save_value(query: str, arc: DecisionArc) -> str:
             "decision": arc.standing_decision[:400],
             "owner": arc.owner[:80],
             "at": arc.decided_at[:24],
+            "channel": (standing.channel if standing else "")[:80],
+            "icon": _STATE_ICON.get(standing.state if standing else "adopted", "✅"),
             "n": arc.times_discussed,
             "url": arc.sources[-1] if arc.sources else "",
         },
@@ -149,23 +172,17 @@ def _save_value(query: str, arc: DecisionArc) -> str:
 def build_arc_card(
     query: str, arc: DecisionArc, warning: ConflictWarning | None = None
 ) -> tuple[list[dict], str]:
-    """Block Kit card for a synthesized decision ARC: standing decision + owner + times-discussed +
-    a sourced timeline, or an honest INCONCLUSIVE state, plus an optional contradiction warning."""
+    """Block Kit card for a synthesized decision ARC. Visual hierarchy: the standing decision is the
+    HERO (top, bold), the timeline is secondary (each row a clickable link to its thread), and the
+    meta/privacy footer is the quietest. Honest INCONCLUSIVE state when there's no decision."""
     settled = not arc.inconclusive
     header = (
         "⏳ Déjà vu — your team already decided this"
         if settled
-        else "⏳ Déjà vu — your team has been here before"
+        else "⏳ Déjà vu — you've been here before"
     )
     blocks: list[dict] = [
-        {
-            "type": "header",
-            "text": {"type": "plain_text", "text": header, "emoji": True},
-        },
-        {
-            "type": "context",
-            "elements": [{"type": "mrkdwn", "text": f":mag: searched  _{query}_"}],
-        },
+        {"type": "header", "text": {"type": "plain_text", "text": header, "emoji": True}}
     ]
 
     if warning:
@@ -173,62 +190,86 @@ def build_arc_card(
             {"type": "section", "text": {"type": "mrkdwn", "text": warning.text}}
         )
 
+    # HERO — the standing decision, the single most prominent thing on the card.
     if settled:
-        who = f" · _{arc.owner}_" if arc.owner else ""
-        when = f" · {arc.decided_at}" if arc.decided_at else ""
+        standing = next(
+            (
+                e
+                for e in reversed(arc.timeline)
+                if e.state in ("adopted", "reversed") and e.permalink
+            ),
+            None,
+        )
+        hero_icon = _STATE_ICON.get(standing.state if standing else "adopted", "✅")
         blocks.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f":white_check_mark: *Standing decision*{who}{when}\n{_quote(arc.standing_decision)}",
+                    "text": f"{hero_icon}  *{_short(arc.standing_decision, 260)}*",
                 },
+                "accessory": _open_accessory(arc.sources[-1] if arc.sources else ""),
             }
         )
-        if arc.is_recurring:
-            blocks.append(
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f":repeat: This has come up *{arc.times_discussed}×* before",
-                        }
-                    ],
-                }
+        meta = "  ·  ".join(
+            x
+            for x in (
+                f"_{arc.owner}_" if arc.owner else "",
+                arc.decided_at,
+                f":repeat: discussed *{arc.times_discussed}×*"
+                if arc.is_recurring
+                else "",
+                f":mag: _{query}_",
             )
+            if x
+        )
+        blocks.append(
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": meta}]}
+        )
     else:
         blocks.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f":thinking_face: *Inconclusive* — discussed *{arc.times_discussed}×*, "
-                    "but no clear decision was recorded. I won't invent one.",
+                    "text": f":thinking_face:  *No decision on record* — discussed *{arc.times_discussed}×*, "
+                    "but the team never landed it. I won't invent one.",
                 },
             }
         )
-
-    blocks.append({"type": "divider"})
-    lines = []
-    for e in arc.timeline[:7]:
-        icon = _STATE_ICON.get(e.state, "")
-        mark = f"{icon} " if icon else ""
-        date = f"`{e.date}` " if e.date else ""
-        link = f"  <{e.permalink}|↗>" if e.permalink else ""
-        lines.append(
-            f"{date}*#{e.channel}* · _{e.author}_ — {mark}{_short(e.summary)}{link}"
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [{"type": "mrkdwn", "text": f":mag: _{query}_"}],
+            }
         )
+
+    # TIMELINE — secondary. One section per event so each row carries its OWN clickable thread button.
+    blocks.append({"type": "divider"})
     blocks.append(
         {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": ":clock3: *Timeline*\n" + "\n".join(lines),
-            },
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": ":clock3: *How it unfolded*"}],
         }
     )
+    for i, e in enumerate(arc.timeline[:5]):
+        icon = _STATE_ICON.get(e.state, "•")
+        date = f"`{e.date}`  " if e.date else ""
+        row = {
+            "type": "section",
+            "block_id": f"deja_tl_{i}",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{icon}  {date}*#{e.channel}* · _{e.author}_\n{_short(e.summary, 180)}",
+            },
+        }
+        acc = _open_accessory(e.permalink)
+        if acc:
+            row["accessory"] = acc
+        blocks.append(row)
 
+    # ACTIONS — Save (settled only) · Open source · Not relevant. Consistent order + alignment.
+    blocks.append({"type": "divider"})
     actions: list[dict] = []
     if settled:
         actions.append(
@@ -249,7 +290,11 @@ def build_arc_card(
             {
                 "type": "button",
                 "action_id": "deja_open_thread",
-                "text": {"type": "plain_text", "text": "🔗 Open thread", "emoji": True},
+                "text": {
+                    "type": "plain_text",
+                    "text": "🔗 Open source thread",
+                    "emoji": True,
+                },
                 "url": arc.sources[-1],
             }
         )

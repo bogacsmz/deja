@@ -75,4 +75,4 @@ def test_app_home_digest_shows_saved_decisions(tmp_path, monkeypatch):
     importlib.reload(b)
     view = b.build_app_home_view()
     flat = json.dumps(view)
-    assert "Saved decisions" in flat and "Temporal" in flat and "circled back" in flat
+    assert "Recent decisions" in flat and "Temporal" in flat

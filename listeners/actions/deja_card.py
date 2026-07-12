@@ -8,11 +8,30 @@ from deja.canvas import write_canvas
 from deja.store import list_decisions, save_decision
 
 
+def _without_save_button(blocks: list[dict]) -> list[dict]:
+    """Return the card blocks with the '💾 Save decision' button removed (so it can't be re-clicked),
+    dropping the actions block entirely if it becomes empty."""
+    out: list[dict] = []
+    for b in blocks:
+        if b.get("type") == "actions":
+            els = [
+                e
+                for e in b.get("elements", [])
+                if e.get("action_id") != "deja_save_decision"
+            ]
+            if not els:
+                continue
+            b = {**b, "elements": els}
+        out.append(b)
+    return out
+
+
 async def handle_save_decision(
     ack: Ack, body: dict, client: AsyncWebClient, logger: Logger
 ):
     """'💾 Save decision' — persist the standing decision to the canonical log (the flywheel:
-    future recalls + App Home + the team Canvas all read it), then confirm on the card."""
+    future recalls + App Home + the team Canvas all read it). The confirmation is EPHEMERAL (only the
+    clicker sees it) so Déjà never leaves clutter in the channel; the card just loses its Save button."""
     await ack()
     try:
         value = (body.get("actions") or [{}])[0].get("value", "")
@@ -22,21 +41,18 @@ async def handle_save_decision(
         canvas_id = await write_canvas(client, list_decisions())  # best-effort mirror
 
         channel, ts = body["channel"]["id"], body["message"]["ts"]
-        blocks = list(body["message"]["blocks"])
-        canvas_note = " · updated the team Canvas" if canvas_id else ""
-        blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f":floppy_disk: Saved to the team decision log by <@{user}>{canvas_note}",
-                    }
-                ],
-            }
-        )
         await client.chat_update(
-            channel=channel, ts=ts, blocks=blocks, text="Déjà — decision saved"
+            channel=channel,
+            ts=ts,
+            blocks=_without_save_button(list(body["message"]["blocks"])),
+            text="Déjà — decision saved",
+        )
+        canvas_note = " · updated the team Canvas" if canvas_id else ""
+        topic = record.get("topic") or record.get("q") or "the decision"
+        await client.chat_postEphemeral(
+            channel=channel,
+            user=user,
+            text=f":floppy_disk: Saved *{topic}* to the team decision log{canvas_note} — it's on Déjà's App Home now.",
         )
         logger.info(f"deja_save_decision: {record.get('topic')!r} saved by {user}")
     except Exception as e:
@@ -52,31 +68,15 @@ async def handle_open_thread(ack: Ack):
 async def handle_not_relevant(
     ack: Ack, body: dict, client: AsyncWebClient, logger: Logger
 ):
-    """'🙅 Not relevant' — collapse the card to a dismissed note and log it (a precision signal
-    we can learn from later)."""
+    """'🙅 Not relevant' — remove the card entirely, leaving no trace in the channel. A wrong card the
+    user rejects should vanish, not linger as a 'dismissed' note. (Logged as a precision signal.)"""
     await ack()
     try:
         channel = body["channel"]["id"]
         ts = body["message"]["ts"]
         source = (body.get("actions") or [{}])[0].get("value", "")
         user = (body.get("user") or {}).get("id", "")
-        await client.chat_update(
-            channel=channel,
-            ts=ts,
-            text="Déjà — dismissed",
-            blocks=[
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": ":wave: Dismissed — I'll stay quiet on this one. "
-                            "_(noted to improve what I surface)_",
-                        }
-                    ],
-                }
-            ],
-        )
+        await client.chat_delete(channel=channel, ts=ts)
         logger.info(
             f"deja_not_relevant: dismissed by {user} in {channel} (source={source})"
         )

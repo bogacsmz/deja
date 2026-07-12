@@ -37,11 +37,27 @@ def test_settled_card_has_standing_decision_timeline_and_save():
     blocks, fallback = build_arc_card("temporal", arc)
     assert "header" in _types(blocks) and "actions" in _types(blocks)
     flat = json.dumps(blocks)
-    assert "Standing decision" in flat and "rolling back" in flat.lower()
-    assert "Timeline" in flat and "Maya Chen" in flat
+    assert "rolling back" in flat.lower()  # hero = the standing decision itself
+    assert "How it unfolded" in flat and "Maya Chen" in flat  # sourced timeline
     assert "deja_save_decision" in flat  # save button present when settled
     assert "AI-generated" in flat  # honesty/AI label
     assert "standing decision" in fallback.lower()
+
+
+def test_settled_card_timeline_rows_are_clickable_buttons():
+    """Every timeline row with a permalink carries a native URL button (inline `<url|↗>` links
+    break on the '&' in Slack permalinks — buttons don't)."""
+    blocks, _ = build_arc_card("temporal", _rollback_arc())
+    row_buttons = [
+        b["accessory"]
+        for b in blocks
+        if b.get("type") == "section" and b.get("accessory")
+    ]
+    assert row_buttons, "timeline rows must have an Open button"
+    assert all(
+        btn["url"].startswith("http") and btn["action_id"] == "deja_open_thread"
+        for btn in row_buttons
+    )
 
 
 def test_inconclusive_card_has_no_save_button_and_says_inconclusive():
@@ -50,7 +66,7 @@ def test_inconclusive_card_has_no_save_button_and_says_inconclusive():
     )
     blocks, fallback = build_arc_card("x", arc)
     flat = json.dumps(blocks)
-    assert "Inconclusive" in flat and "won't invent" in flat.lower()
+    assert "No decision on record" in flat and "won't invent" in flat.lower()
     assert "deja_save_decision" not in flat  # never offer to save a non-decision
     assert "inconclusive" in fallback.lower()
 

@@ -13,7 +13,20 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import time
+
+# Strip the leading "Decision:/Decided:/Outcome:/Update…:" label so a headline reads as the decision
+# itself, not the boilerplate in front of it.
+_LEAD = re.compile(r"^\s*(decision|decided|outcome|update[^:]*)\s*:\s*", re.I)
+
+
+def decision_headline(decision: str, n: int = 68) -> str:
+    """A short, human headline for a decision — its first sentence, minus the 'Decision:' label."""
+    t = _LEAD.sub("", (decision or "").strip())
+    head = re.split(r"(?<=[.!?])\s", t, maxsplit=1)[0]
+    head = " ".join(head.split())
+    return head if len(head) <= n else head[:n].rstrip(" ,;—-") + "…"
 
 
 def _path() -> pathlib.Path:
@@ -45,11 +58,15 @@ def save_decision(record: dict, saved_by: str = "") -> dict:
     data = _load()
     key = _key(record.get("topic") or record.get("q") or "")
     existing = data["decisions"].get(key, {})
+    decision = record.get("decision", "")
     entry = {
         "topic": record.get("topic") or record.get("q") or "",
-        "decision": record.get("decision", ""),
+        "decision": decision,
+        "headline": record.get("headline") or decision_headline(decision),
+        "icon": record.get("icon", "") or "✅",
         "owner": record.get("owner", ""),
         "at": record.get("at", ""),
+        "channel": record.get("channel", ""),
         "times_discussed": record.get("n", 0),
         "url": record.get("url", ""),
         "saved_by": saved_by,
