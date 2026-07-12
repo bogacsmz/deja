@@ -69,6 +69,43 @@ def test_conflict_split_kept_vs_rejected():
     assert not _conflicts("migrate to Temporal", "we're going with continuous deploy")  # no rejection
 
 
+def _agent_card(proposal, query, monkeypatch):
+    import deja.respond as respond
+
+    async def _judge(msg):
+        return TriggerDecision(True, query, "")
+
+    monkeypatch.setattr(respond, "judge", _judge)
+    return asyncio.run(
+        respond.recall_card(
+            proposal, None, is_agent=True, recall_fn=local_recall, thread_fn=local_thread
+        )
+    )
+
+
+def test_mode_b_conflict_posts_guardrail_header(monkeypatch):
+    card = _agent_card(
+        "Opening a PR to migrate the job queue to Temporal.",
+        "Temporal job queue migration",
+        monkeypatch,
+    )
+    assert card is not None
+    header = next(b["text"]["text"] for b in card["blocks"] if b["type"] == "header")
+    assert "Conflicts with a standing decision" in header
+
+
+def test_mode_b_allow_stays_silent(monkeypatch):
+    # consistent-with-the-decision proposal → no channel post (ALLOW is silent)
+    assert (
+        _agent_card(
+            "Proposing we add a usage add-on for heavy accounts.",
+            "usage-based pricing seat",
+            monkeypatch,
+        )
+        is None
+    )
+
+
 def test_conflict_edge_cases_from_review():
     # bare "kept" past tense must also mark the kept clause (was a false CONFLICTS)
     assert not _conflicts("add a usage add-on", "reverted usage-based, kept a usage add-on")

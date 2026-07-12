@@ -190,16 +190,21 @@ def build_arc_card(
     arc: DecisionArc,
     warning: ConflictWarning | None = None,
     owner_uid: str = "",
+    agent_conflict: bool = False,
 ) -> tuple[list[dict], str]:
     """Block Kit card for a synthesized decision ARC. Visual hierarchy: the standing decision is the
     HERO (top, bold), the timeline is secondary (each row a clickable link to its thread), and the
-    meta/privacy footer is the quietest. Honest INCONCLUSIVE state when there's no decision."""
+    meta/privacy footer is the quietest. Honest INCONCLUSIVE state when there's no decision.
+
+    `agent_conflict=True` reframes the header for Mode B — an agent proposal caught against a standing
+    decision reads as a GUARDRAIL ("Conflicts with a standing decision"), not a memory jog."""
     settled = not arc.inconclusive
-    header = (
-        "⏳ Déjà vu — your team already decided this"
-        if settled
-        else "⏳ Déjà vu — you've been here before"
-    )
+    if settled and agent_conflict:
+        header = "⚠️ Conflicts with a standing decision"
+    elif settled:
+        header = "⏳ Déjà vu — your team already decided this"
+    else:
+        header = "⏳ Déjà vu — you've been here before"
     blocks: list[dict] = [
         {"type": "header", "text": {"type": "plain_text", "text": header, "emoji": True}}
     ]

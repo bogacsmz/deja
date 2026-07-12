@@ -81,7 +81,7 @@ async def handle_ask_owner(ack: Ack, body: dict, client: AsyncWebClient, logger:
         dec = rec.get("dec", "")
         text = (
             f"{mention} — this came up again ({nth} time). You made the call{when} "
-            f"(_{dec}_). Still stands, or should we reopen it?"
+            f"(_{dec}_). Still stands, or should we reopen it?  _(via Déjà)_"
         )
         channel = body["channel"]["id"]
         msg = body.get("message", {})

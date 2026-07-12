@@ -55,43 +55,71 @@ async def recall_reply(
 
 
 async def recall_card(
-    text: str, client, *, limit: int = 3, exclude_ts: str | None = None, on_status=None
+    text: str,
+    client,
+    *,
+    limit: int = 3,
+    exclude_ts: str | None = None,
+    on_status=None,
+    is_agent: bool = False,
+    recall_fn=None,
+    thread_fn=None,
 ) -> dict | None:
     """Full pipeline: judge -> reconstruct the decision ARC -> build the Block Kit card.
 
     Returns {"blocks": [...], "text": fallback} or None when there's nothing worth surfacing.
-    Déjà stays silent unless it found either a standing decision or a recurring discussion — a lone
-    proposal with no outcome isn't worth interrupting for. `client` is accepted for signature
-    compatibility (the arc engine fetches threads itself). `on_status(str)` (optional async) is
-    called with progress lines for an agent-design status indicator."""
+
+    Two consumers of the same engine:
+    - Human (is_agent=False): the ambient memory card — surfaces a standing decision or recurring
+      discussion; silent otherwise.
+    - Agent (is_agent=True, Mode B): a GOVERNANCE brake — posts ONLY when the proposal CONFLICTS with a
+      standing decision (⚠️ header) or the topic is inconclusive-but-recurring. ALLOW stays silent
+      (rule: a channel-clean guardrail — nothing to post means nothing posted).
+
+    `on_status(str)` (optional async) emits progress lines for an agent-design status indicator."""
+    from deja.govern import _conflicts
 
     async def _status(msg: str) -> None:
         if on_status:
             await on_status(msg)
 
-    # NB: the caller (app_mention handler) already posted the instant "Searching your workspace…"
-    # status before calling us, so we don't re-emit it here — that just burned a Slack round-trip.
     decision = await judge(text)
-    if not decision.should_recall or not decision.query:
+    # Humans get the should_recall gate (don't interrupt chit-chat). An agent proposal is checked
+    # regardless — the grounding gate + conflict test below are what keep it from being noisy.
+    if not is_agent and (not decision.should_recall or not decision.query):
         return None
+    query = decision.query or text
 
-    # expand=False: the live card stays fast + light on the rate-limited RTS (no LLM in the hot
-    # path). Seeded/real topics retrieve directly; MCP + benchmark keep full expansion.
+    # expand=False: the live card stays fast + light on the rate-limited RTS (no LLM in the hot path).
     try:
-        arc = await recall_arc(decision.query, exclude_ts=exclude_ts, expand=False)
+        arc = await recall_arc(
+            query,
+            exclude_ts=exclude_ts,
+            expand=False,
+            recall_fn=recall_fn,
+            thread_fn=thread_fn,
+        )
     except RateLimitedError:
         return RATE_LIMITED  # tell the user to retry, don't fail silently
     if arc is None or (arc.inconclusive and not arc.is_recurring):
-        return None  # nothing found, or just a single unresolved proposal — stay quiet
+        return None  # nothing found, or a single unresolved proposal — stay quiet
+
+    # Mode B guardrail: only speak up on a genuine CONFLICT (or an inconclusive-recurring topic).
+    # A settled decision the proposal is CONSISTENT with is an ALLOW → stay silent, don't clutter.
+    agent_conflict = False
+    if is_agent and not arc.inconclusive:
+        agent_conflict = _conflicts(text, arc.standing_decision)
+        if not agent_conflict:
+            return None
 
     await _status(
         f":books: _Found {arc.times_discussed} related thread(s) — reconstructing…_"
     )
-    # Resolve the decision owner to a real user so we can offer to ping them. Empty (no real match)
-    # → the card simply won't show the ask button. Cached workspace lookup, so it's cheap.
     owner_uid = ""
     if not arc.inconclusive and arc.owner:
         owner_uid = await resolve_owner_id(client, arc.owner)
     warning = detect_conflict(text, arc)
-    blocks, fallback = build_arc_card(decision.query, arc, warning, owner_uid=owner_uid)
+    blocks, fallback = build_arc_card(
+        query, arc, warning, owner_uid=owner_uid, agent_conflict=agent_conflict
+    )
     return {"blocks": blocks, "text": fallback}
