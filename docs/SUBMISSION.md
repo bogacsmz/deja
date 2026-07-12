@@ -106,7 +106,7 @@ is fatal — but a silent bot is a cheap victory, so we measure recall too.**
 never-discussed topics, nonsense, typos, multi-topic, other languages, false-premise provocations)
 and splits the outcome honestly:
 
-> **correct 43 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** → **recall 43/48 = 90%** on the
+> **correct 46 · MISS 5 · correct-silent 27 · CONFIDENT-WRONG 0** → **recall 46/51 = 90%** on the
 > queries that have a real decision to find, with **zero** confident-wrong answers.
 
 Déjà is a decision **engine**, not a search box: each retrieved thread is a state-machine transition

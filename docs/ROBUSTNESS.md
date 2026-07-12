@@ -78,6 +78,9 @@ verdict              mode     query
   correct            topic    ¿deberíamos usar Datadog para monitoreo?
 🟡MISS               topic    faut-il adopter le déploiement continu?
 🟡MISS               topic    sollten wir Postgres oder Mongo nehmen?
+  correct            topic    are we launching GA or staying in beta?
+  correct            topic    when's the public launch?
+  correct            topic    did we already launch GA?
 🟡MISS               topic    didn't we decide to drop Postgres?
   correct            topic    we agreed to buy Datadog, right?
   correct            topic    we're on Temporal now, correct?
@@ -89,13 +92,13 @@ verdict              mode     query
   correct            topic    we're using MongoDB as the main DB, right?
   correct            topic    we brought back the sync standup, yeah?
 
-TOTAL 75 adversarial queries (48 have a real decision to find):
-  correct         : 43   (found the right standing decision)
+TOTAL 78 adversarial queries (51 have a real decision to find):
+  correct         : 46   (found the right standing decision)
   MISS            : 5   <<< recall gap: it was there, we stayed silent
   correct-silent  : 27   (nothing to find — silence is right)
   CONFIDENT-WRONG : 0   <<< must stay 0
 
-  RECALL on real-decision queries: 43/48 = 90%
+  RECALL on real-decision queries: 46/51 = 90%
 ```
 
 ## Categories

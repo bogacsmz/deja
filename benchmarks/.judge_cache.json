@@ -528,5 +528,30 @@
   "should_recall": true,
   "query": "sync standup",
   "reason": "asks about a past team decision"
+ },
+ "are we launching GA or staying in beta?": {
+  "should_recall": true,
+  "query": "GA launch beta",
+  "reason": "decision on launch readiness"
+ },
+ "when's the public launch?": {
+  "should_recall": true,
+  "query": "public launch date",
+  "reason": "question about a previously discussed launch date"
+ },
+ "do we have a free tier?": {
+  "should_recall": true,
+  "query": "free tier pricing",
+  "reason": "pricing question likely discussed before"
+ },
+ "should we add a free tier?": {
+  "should_recall": true,
+  "query": "free tier pricing",
+  "reason": "product pricing proposal likely discussed before"
+ },
+ "did we already launch GA?": {
+  "should_recall": true,
+  "query": "GA launch",
+  "reason": "asks about prior launch status"
  }
 }

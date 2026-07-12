@@ -226,6 +226,64 @@ DEPLOY = (
     ),
 )
 
+# --- Arc 5: Launch timing (positioning) — propose GA -> DECIDED stay in beta -> reopened ---------
+LAUNCH = (
+    Thread(
+        "product",
+        "‹deja-arc:launch-1›",
+        Msg(
+            "Priya Nair",
+            "[Feb 10] Should we do a public GA launch this quarter, or stay in private "
+            "beta a bit longer? Inbound is picking up.",
+        ),
+        (
+            Msg(
+                "Diego Santos",
+                "tempting, but activation is still rough for cold signups.",
+            ),
+        ),
+    ),
+    Thread(
+        "product",
+        "‹deja-arc:launch-2›",
+        Msg("Maya Chen", "[Mar 5] Public GA launch vs private beta — timing decision."),
+        (
+            Msg(
+                "Maya Chen",
+                "Decided: we're STAYING IN PRIVATE BETA through Q2. A public GA now would "
+                "churn the inbound — onboarding activation isn't there yet. Public launch targeted for "
+                "Q3 once activation is fixed.",
+            ),
+            Msg(
+                "Priya Nair",
+                "agreed, I'll own the activation metrics we need to hit first.",
+            ),
+        ),
+    ),
+    Thread(
+        "general",
+        "‹deja-arc:launch-3›",
+        Msg(
+            "Diego Santos",
+            "[May 20] Can we pull the public launch forward? Sales keeps asking for a "
+            "GA date.",
+        ),
+        (
+            Msg(
+                "Maya Chen",
+                "we set the bar in March — GA holds until activation improves, that's still "
+                "the gate. Not pulling it forward without the metrics.",
+            ),
+        ),
+    ),
+)
+
+# (A 'free tier' arc was tried here but conflicted with the existing seat-vs-usage pricing single —
+# 'free tier pricing' pulled the pricing reversal in as the standing decision, a confident-wrong.
+# Removed. The launch arc gives the positioning example; pricing is the usage→seat-based decision.
+# Its live threads are deleted via OBSOLETE_MARKERS below.)
+
+
 # --- Noise: no decisions, recall should stay silent / inconclusive on these ----------------------
 NOISE = (
     Thread(
@@ -318,9 +376,11 @@ ARCS = {
     "Observability vendor": MONITORING,
     "Deploy cadence": DEPLOY,
     "RFC / design-doc process": RFC,
+    "Launch timing": LAUNCH,
 }
 ALL_THREADS = [t for arc in ARCS.values() for t in arc] + list(NOISE)
-# Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above.
+# Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above; the
+# removed free-tier arc's threads are deleted too (it confused with the seat-vs-usage pricing single).
 OBSOLETE_MARKERS = (
     "‹deja-seed:eng-temporal-v1›",
     "‹deja-arc:temporal-1›",
@@ -333,6 +393,8 @@ OBSOLETE_MARKERS = (
     "‹deja-arc:deploy-1›",
     "‹deja-arc:deploy-2›",
     "‹deja-arc:deploy-3›",
+    "‹deja-arc:freetier-1›",
+    "‹deja-arc:freetier-2›",
 )
 
 

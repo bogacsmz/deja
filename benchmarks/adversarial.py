@@ -139,6 +139,10 @@ CASES: list[tuple[str, str, list[str]]] = [
         ["continuous deploy", "decided", "going with"],
     ),
     ("sollten wir Postgres oder Mongo nehmen?", "topic", ["postgres"]),
+    # --- positioning decision (Déjà isn't eng-only): launch timing ---
+    ("are we launching GA or staying in beta?", "topic", ["private beta", "beta"]),
+    ("when's the public launch?", "topic", ["private beta", "beta", "q3"]),
+    ("did we already launch GA?", "topic", ["private beta", "beta"]),  # provocation
     # --- FALSE-PREMISE provocations → show the TRUE decision or inconclusive, never confirm the lie ---
     ("didn't we decide to drop Postgres?", "topic", ["postgres"]),
     ("we agreed to buy Datadog, right?", "topic", ["dropping", "grafana"]),
