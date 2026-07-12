@@ -49,8 +49,12 @@ _RTS_CACHE: dict[tuple[str, int], list[Hit]] = {}
 _DEJA_FINGERPRINTS = ("déjà", "your team already discussed", "powered by legibright")
 
 # Nor should questions ADDRESSED to Déjà count as team discussion — otherwise asking the same thing
-# three times inflates the "discussed N×" counter. Drop any hit that @-mentions the bot.
+# repeatedly inflates the "discussed N×" counter (and pollutes the timeline). Drop any hit that
+# addresses the bot. TWO forms must be caught: a real `<@BOT_UID>` mention, AND the literal "@Deja"
+# handle as plain text — which is both how RTS renders a mention in its snippet AND how the
+# onboarding "Try these" examples read when a user copies them into a channel.
 _BOT_UID = os.environ.get("DEJA_BOT_USER_ID", "")
+_DEJA_HANDLE = re.compile(r"@\s*d[eé]j[aà]", re.IGNORECASE)  # @deja / @Déjà, not a real <@UID>
 
 
 def _is_deja_card(snippet: str) -> bool:
@@ -59,7 +63,10 @@ def _is_deja_card(snippet: str) -> bool:
 
 
 def _addressed_to_deja(snippet: str) -> bool:
-    return bool(_BOT_UID) and f"<@{_BOT_UID}>" in snippet
+    s = snippet or ""
+    if _BOT_UID and f"<@{_BOT_UID}>" in s:
+        return True
+    return bool(_DEJA_HANDLE.search(s))  # literal "@Deja …" text (RTS render / copied example)
 
 
 def _resolve_token(explicit: str | None) -> str:

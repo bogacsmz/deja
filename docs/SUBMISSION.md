@@ -106,7 +106,7 @@ is fatal — but a silent bot is a cheap victory, so we measure recall too.**
 never-discussed topics, **lexical traps**, nonsense, typos, multi-topic, other languages,
 false-premise provocations) and splits the outcome honestly:
 
-> **correct 45 · MISS 6 · correct-silent 32 · CONFIDENT-WRONG 0** → **recall 45/51 = 88%** on the
+> **correct 49 · MISS 2 · correct-silent 32 · CONFIDENT-WRONG 0** → **recall 49/51 = 96%** on the
 > queries that have a real decision to find, with **zero** confident-wrong answers.
 
 It runs against a **permissive** RTS mirror — a *superset* of what live search returns — so a lexical
@@ -120,9 +120,9 @@ state-changing one, so a re-opened topic never overturns the decision on record.
 gate** (`deja/arc.py` `_grounded`, on EVERY query) shows a decision only if one of the query's
 *distinctive subject words* actually appears in the retrieved threads — a shared decision/action verb
 (buy · migrate · drop · launch · roll · stay) is **not** a topic match, so "buy a boat" ≠ "buy auth".
-Provocations get the *actual* decision (contradicting the false premise) or nothing. The 6 misses are
-honest silences, never wrong answers (other-language phrasings — Déjà is monolingual; `Mongo`≠`MongoDB`
-and `authentication`≠`auth` exact-token gaps). Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus
+Provocations get the *actual* decision (contradicting the false premise) or nothing. The 2 misses are
+honest silences, never wrong answers (one French phrasing — Déjà is monolingual; and "did we already
+launch GA?", whose only subject is the 2-letter "GA"). Full run in [`ROBUSTNESS.md`](ROBUSTNESS.md). Plus
 **rate-limit grace**: when Slack throttles the search, Déjà says so ("ask again in a minute").
 
 ## Privacy

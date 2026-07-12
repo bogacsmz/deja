@@ -28,7 +28,7 @@ verdict              mode     query
   correct            topic    do we deploy on merge?
   correct            topic    release trains or continuous deploy?
   correct            topic    should we switch to continuous deploy?
-🟡MISS               topic    Postgres or Mongo?
+  correct            topic    Postgres or Mongo?
   correct            topic    what's our primary datastore?
   correct            topic    should we use MongoDB?
   correct            topic    monorepo or many repos?
@@ -77,16 +77,16 @@ verdict              mode     query
   correct            topic    Postgress or Mongo db?
   correct            topic    shud we uze MUI?
   correct            topic    should we use Temporal and Datadog?
-🟡MISS               topic    Postgres or Mongo, and monorepo or not?
+  correct            topic    Postgres or Mongo, and monorepo or not?
   correct            topic    Datadog for monitoring and Kafka for events?
   correct            topic    Temporal'a geçmeli miyiz yoksa Redis mi?
   correct            topic    ¿deberíamos usar Datadog para monitoreo?
 🟡MISS               topic    faut-il adopter le déploiement continu?
-🟡MISS               topic    sollten wir Postgres oder Mongo nehmen?
+  correct            topic    sollten wir Postgres oder Mongo nehmen?
   correct            topic    are we launching GA or staying in beta?
   correct            topic    when's the public launch?
 🟡MISS               topic    did we already launch GA?
-🟡MISS               topic    didn't we decide to drop Postgres?
+  correct            topic    didn't we decide to drop Postgres?
   correct            topic    we agreed to buy Datadog, right?
   correct            topic    we're on Temporal now, correct?
   correct            topic    we killed continuous deploy, didn't we?
@@ -98,12 +98,12 @@ verdict              mode     query
   correct            topic    we brought back the sync standup, yeah?
 
 TOTAL 83 adversarial queries (51 have a real decision to find):
-  correct         : 45   (found the right standing decision)
-  MISS            : 6   <<< recall gap: it was there, we stayed silent
+  correct         : 49   (found the right standing decision)
+  MISS            : 2   <<< recall gap: it was there, we stayed silent
   correct-silent  : 32   (nothing to find — silence is right)
   CONFIDENT-WRONG : 0   <<< must stay 0
 
-  RECALL on real-decision queries: 45/51 = 88%
+  RECALL on real-decision queries: 49/51 = 96%
 ```
 
 ## Categories
@@ -131,13 +131,12 @@ in `run.py` keeps the selective mirror — that one measures recall, not worst-c
   premise parroted back.
 
 ## The remaining misses (honest — silence, never a wrong answer)
-- **Other languages** ('déploiement continu', 'Postgres oder Mongo'): **Déjà is monolingual
-  (English).** Bridging languages needs the LLM translation the live card keeps off for speed.
+- **One French phrasing** ('déploiement continu'): **Déjà is monolingual (English).**
+  Bridging languages needs the LLM translation the live card keeps off for speed.
 - **'did we already launch GA?'**: the only subject word is the 2-letter 'GA'; 'launch' is
   generic. Nothing distinctive survives, so the gate stays silent rather than guess — the
   deliberate cost of silencing 'drop the ball on the launch'. Direct phrasings ('launching GA
   or staying in beta?', 'when's the public launch?') still resolve.
-- A terse multi-topic + one provocation whose subject lives in a reply, not the matched parent.
 
 Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the permissive mirror.
 Run: `python benchmarks/adversarial.py --md`.

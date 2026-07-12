@@ -165,15 +165,19 @@ def check_foundations() -> None:
         record(phase, "manifest.json valid", FAIL, f"{type(e).__name__}: {e}")
 
     try:
-        from seed_data import SEEDS
+        from seed_arcs import ALL_THREADS, ARCS
+        from seed_data import is_decision
 
-        markers = [t.marker for t in SEEDS]
+        markers = [t.marker for t in ALL_THREADS]
+        inconclusive = {"RFC / design-doc process"}  # the one arc that is decision-free by design
         problems = []
         if len(markers) != len(set(markers)):
             problems.append("duplicate markers")
-        if any(not t.has_decision() for t in SEEDS):
-            problems.append("thread w/o decision reply")
-        if len({t.channel for t in SEEDS}) < 4:
+        for name, threads in ARCS.items():
+            has = any(is_decision(r.text) for t in threads for r in t.replies)
+            if has == (name in inconclusive):
+                problems.append(f"{name} decision/inconclusive mismatch")
+        if len({t.channel for t in ALL_THREADS}) < 4:
             problems.append("<4 channels")
         record(
             phase,
@@ -181,8 +185,8 @@ def check_foundations() -> None:
             FAIL if problems else PASS,
             "; ".join(problems)
             if problems
-            else f"{len(SEEDS)} threads / "
-            f"{len({t.channel for t in SEEDS})} channels, markers unique, all have a decision",
+            else f"{len(ALL_THREADS)} arc threads / "
+            f"{len({t.channel for t in ALL_THREADS})} channels, markers unique, decisions consistent",
         )
     except Exception as e:  # noqa: BLE001
         record(phase, "seed-data integrity", FAIL, f"{type(e).__name__}: {e}")

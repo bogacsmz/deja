@@ -311,27 +311,164 @@ AUTH = (
     ),
 )
 
+# Datastore — a full multi-author arc (propose Mongo -> DECIDED Postgres -> reopened for analytics).
 DATASTORE = (
     Thread(
         "eng",
-        "‹deja-arc:datastore-1›",
+        "‹deja-arc:datastore-1-v2›",
         Msg(
-            "Alex Rivera",
-            "[Feb 3] Proposing we standardize the primary datastore on MongoDB — the "
-            "flexible schema will let us move faster on new features. Thoughts before I write "
-            "the ADR?",
+            "Sam Okoro",
+            "[Jan 20] Proposing we standardize the primary datastore on MongoDB — the "
+            "flexible schema lets us move faster on new features. Thoughts before I write the ADR?",
         ),
         (
             Msg(
                 "Maya Chen",
-                "My worry is transactions across collections — a lot of our flows need "
+                "my worry is transactions across collections — a lot of our flows need "
                 "multi-row consistency.",
             ),
+        ),
+    ),
+    Thread(
+        "eng",
+        "‹deja-arc:datastore-2-v2›",
+        Msg(
+            "Maya Chen",
+            "[Feb 3] Primary datastore — Postgres vs MongoDB, final call after the ADR review.",
+        ),
+        (
             Msg(
-                "Alex Rivera",
+                "Maya Chen",
                 "Decision: we're going with Postgres, not Mongo. JSONB gives us the schema "
-                "flexibility we wanted, and we keep real transactions + mature tooling. Mongo "
-                "stays out of the core stack.",
+                "flexibility we wanted, and we keep real transactions + mature tooling. ADR-014: "
+                "Postgres is the system of record. Mongo stays out of the core stack.",
+            ),
+            Msg("Alex Rivera", "👍 migrating the schema now."),
+        ),
+    ),
+    Thread(
+        "product",
+        "‹deja-arc:datastore-3-v2›",
+        Msg(
+            "Diego Santos",
+            "[Apr 15] For the new analytics store, should we revisit MongoDB for the flexible "
+            "documents?",
+        ),
+        (
+            Msg(
+                "Sam Okoro",
+                "we settled the primary datastore on Postgres back in Feb (JSONB covers flexible "
+                "docs). A separate analytics store is a different question — let's not reopen the core.",
+            ),
+        ),
+    ),
+)
+
+# Pricing (positioning) — propose usage-based -> TRIED and REVERTED to seat-based.
+PRICING = (
+    Thread(
+        "product",
+        "‹deja-arc:pricing-1›",
+        Msg(
+            "Priya Nair",
+            "[Feb 15] Should we switch our pricing from seat-based to pure usage-based billing? "
+            "Usage-based feels more modern and aligned with value.",
+        ),
+        (
+            Msg(
+                "Diego Santos",
+                "sales is nervous about unpredictable bills scaring off procurement.",
+            ),
+        ),
+    ),
+    Thread(
+        "product",
+        "‹deja-arc:pricing-2›",
+        Msg("Diego Santos", "[Mar 20] Usage-based pricing verdict after the trial quarter."),
+        (
+            Msg(
+                "Diego Santos",
+                "Update: we TRIED usage-based for a quarter and REVERTED. Customers hated the "
+                "unpredictable invoices and churn ticked up. Back to seat-based with a usage add-on "
+                "for overages — predictable base, upside on heavy users.",
+            ),
+        ),
+    ),
+)
+
+# Remaining single decisions — one back-dated persona thread each (parent proposal + decision reply),
+# so the owner/date read as a real teammate, not the raw sandbox account.
+MONOREPO = (
+    Thread(
+        "eng",
+        "‹deja-arc:monorepo-1v2›",
+        Msg(
+            "Alex Rivera",
+            "[Jan 10] The polyrepo setup is getting painful — shared types drift and cross-repo "
+            "PRs are a nightmare. Should we consolidate into a monorepo?",
+        ),
+        (
+            Msg(
+                "Lena Fischer",
+                "Outcome: we consolidated everything into a single monorepo with Turborepo for "
+                "task caching. Shared packages live in packages/*. Migration done, CI is green.",
+            ),
+        ),
+    ),
+)
+
+K8S = (
+    Thread(
+        "ops",
+        "‹deja-arc:k8s-1v2›",
+        Msg(
+            "Tom Becker",
+            "[Feb 5] For the new services, do we stand up our own Kubernetes cluster or use a "
+            "managed container platform? Leaning k8s for the flexibility.",
+        ),
+        (
+            Msg(
+                "Sam Okoro",
+                "Decided: managed containers (ECS Fargate), not self-hosted k8s. The ops overhead "
+                "of running our own cluster isn't justified at our size — we revisit only if we outgrow it.",
+            ),
+        ),
+    ),
+)
+
+TAILWIND = (
+    Thread(
+        "design",
+        "‹deja-arc:tailwind-1v2›",
+        Msg(
+            "Lena Fischer",
+            "[Mar 1] Our UI is a mix of MUI and hand-rolled CSS and it's inconsistent. Should we "
+            "go all-in on a component library like MUI to unify it?",
+        ),
+        (
+            Msg(
+                "Maya Chen",
+                "Decided: we're standardizing on Tailwind + Radix primitives and DROPPING MUI. "
+                "Utility CSS + headless primitives gave us consistency without the theming fights.",
+            ),
+        ),
+    ),
+)
+
+STANDUP = (
+    Thread(
+        "general",
+        "‹deja-arc:standup-1v2›",
+        Msg(
+            "Diego Santos",
+            "[Jan 8] The 10am daily standup keeps getting derailed and eats focus time across "
+            "timezones. Should we keep the sync meeting?",
+        ),
+        (
+            Msg(
+                "Priya Nair",
+                "Outcome: we KILLED the sync standup and moved to an ASYNC thread — everyone posts "
+                "yesterday/today/blockers by 11am local, call only when a blocker needs it. Focus went up.",
             ),
         ),
     ),
@@ -433,6 +570,11 @@ ARCS = {
     "Launch timing": LAUNCH,
     "Auth build vs buy": AUTH,
     "Primary datastore": DATASTORE,
+    "Pricing model": PRICING,
+    "Repo layout": MONOREPO,
+    "Container platform": K8S,
+    "Styling": TAILWIND,
+    "Daily standup": STANDUP,
 }
 ALL_THREADS = [t for arc in ARCS.values() for t in arc] + list(NOISE)
 # Earlier revisions (single-author Temporal + v1 arc content) are replaced by the v2 arcs above; the
@@ -454,6 +596,13 @@ OBSOLETE_MARKERS = (
     # raw-user single seeds (seed_data.py), replaced by the back-dated persona arcs above:
     "‹deja-seed:product-auth-v1›",
     "‹deja-seed:eng-db-postgres-v1›",
+    "‹deja-seed:eng-monorepo-v1›",
+    "‹deja-seed:ops-managed-k8s-v1›",
+    "‹deja-seed:product-pricing-v1›",
+    "‹deja-seed:design-tailwind-v1›",
+    "‹deja-seed:general-async-standup-v1›",
+    # the single-thread datastore arc posted earlier this session, replaced by the full arc above:
+    "‹deja-arc:datastore-1›",
 )
 
 

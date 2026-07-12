@@ -43,7 +43,7 @@ recurring  are we still paying for Datadog?                          ✗      �
 recurring  what observability stack did we land on?                  ✗      ✗
 recurring  do we deploy on every merge to main?                      ✗      ✓
 recurring  did we get rid of the weekly release trains?              ✓      ✓
-single     Postgres or Mongo for the core datastore?                 ✗      ✓
+single     Postgres or Mongo for the core datastore?                 ✓      ✓
 single     do we self-host our container platform?                   ✓      ✓
 single     did we build or buy authentication?                       ✓      ✗
 single     what did we pick for styling the UI?                      ✗      ✗
@@ -54,7 +54,7 @@ negative   are we moving to Kafka for events?                       ok     ok
 negative   who's on call this weekend?                              ok     ok
 
   recurring (correct standing decision):  baseline 1/6   Déjà 4/6
-  single    (correct standing decision):  baseline 3/5   Déjà 3/5
+  single    (correct standing decision):  baseline 4/5   Déjà 3/5
   negatives (FALSE decisions, lower=better): baseline 1/4   Déjà 0/4
 ```
 

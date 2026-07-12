@@ -79,6 +79,75 @@ def test_addressed_to_deja_is_filtered(monkeypatch):
     monkeypatch.setattr(recall_mod, "_BOT_UID", "U0BOT")
     assert recall_mod._addressed_to_deja("<@U0BOT> should we migrate to Temporal?")
     assert not recall_mod._addressed_to_deja("should we migrate to Temporal?")
+    # The literal "@Deja" handle (RTS's rendered form / a copied 'Try these' example) must also be
+    # caught — this is the form that leaked into the timeline + counter.
+    assert recall_mod._addressed_to_deja("`@Deja should we adopt Datadog for monitoring?`")
+    assert recall_mod._addressed_to_deja("@Déjà are we launching GA?")
+    assert not recall_mod._addressed_to_deja(
+        "we should adopt Datadog"
+    )  # no handle → real discussion
+
+
+def test_deja_mentions_and_cards_never_counted(monkeypatch):
+    """Ask the SAME thing 5×: @Deja questions (real <@UID> mention AND literal '@Deja' text) and
+    Déjà's own cards must never become memories, so 'discussed N×' stays put (acceptance criterion)."""
+    from deja.memory import recall_memories
+    from deja.models import Hit
+
+    monkeypatch.setattr(recall_mod, "_BOT_UID", "U0BOT")
+
+    def _mk(ts, snippet):
+        return Hit(
+            reply_count=1,
+            permalink=f"l://{ts}",
+            channel="eng",
+            channel_id="C1",
+            author="tester",
+            author_id="tester",
+            ts=ts,
+            snippet=snippet,
+            score=1.0,
+        )
+
+    hits = [
+        _mk("100", "Starting a Datadog trial for observability/monitoring"),  # real thread
+        _mk("200", "<@U0BOT> should we adopt Datadog for monitoring?"),  # real mention
+        _mk("300", "`@Deja should we adopt Datadog for monitoring?`"),  # literal example
+        _mk("400", "⏳ Déjà vu — your team already discussed this"),  # Déjà's own card
+    ]
+    threads = {
+        "100": [
+            {"text": "Starting a Datadog trial for observability/monitoring", "ts": "100"},
+            {
+                "text": "Decision: we're DROPPING Datadog for monitoring, going with Grafana.",
+                "username": "Priya",
+                "subtype": "bot_message",
+            },
+        ],
+        "200": [{"text": "<@U0BOT> should we adopt Datadog for monitoring?", "ts": "200"}],
+        "300": [{"text": "`@Deja should we adopt Datadog for monitoring?`", "ts": "300"}],
+        "400": [{"text": "⏳ Déjà vu — your team already discussed this", "ts": "400"}],
+    }
+
+    def _recall(q, **k):
+        return hits
+
+    async def _thread(client, cid, ts):
+        return threads[ts]
+
+    counts = []
+    for _ in range(5):
+        res = asyncio.run(
+            recall_memories(
+                "should we adopt Datadog for monitoring?",
+                recall_fn=_recall,
+                thread_fn=_thread,
+            )
+        )
+        counts.append(len(res["memories"]))
+        blob = " ".join(m["source_message"].lower() for m in res["memories"])
+        assert "@deja" not in blob and "déjà vu" not in blob  # nothing addressed-to-Déjà leaked
+    assert counts == [1, 1, 1, 1, 1]  # only the real thread, stable across repeats
 
 
 def test_resolve_name_passthrough_without_client():

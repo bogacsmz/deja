@@ -103,6 +103,12 @@ async def recall_memories(
     for h in hits:
         if len(memories) >= limit:
             break
+        # First-line guard on the RTS snippet itself: a hit whose snippet is an @Deja question or
+        # one of Déjà's own cards is never team discussion. Checked here too (not just on the fetched
+        # parent) so it's dropped even if thread enrichment below fails — never leaking into the
+        # timeline or the "discussed N×" count.
+        if _addressed_to_deja(h.snippet) or _is_deja_card(h.snippet):
+            continue
         decision, author, source, root_ts = "", h.author, _clean(h.snippet), h.ts
         try:
             msgs = await _thread(client, h.channel_id, h.ts)  # reply-aware

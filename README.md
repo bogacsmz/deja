@@ -59,8 +59,8 @@ unrelated decision **1/4** times. **Déjà → 4/6 recurring · 3/5 single, neve
 
 `benchmarks/adversarial.py` runs the live pipeline over **83 hostile queries** (paraphrases,
 never-discussed topics, **lexical traps**, nonsense, typos, multi-topic, other languages,
-false-premise provocations) and splits the result honestly: **correct 45 · MISS 6 · correct-silent
-32 · CONFIDENT-WRONG 0** → **recall 88%, zero confident-wrong.** It runs against a *permissive* mirror
+false-premise provocations) and splits the result honestly: **correct 49 · MISS 2 · correct-silent
+32 · CONFIDENT-WRONG 0** → **recall 96%, zero confident-wrong.** It runs against a *permissive* mirror
 (a superset of live search), so a trap like "did we decide to **buy** a boat?" surfaces the "**BUYING**
 auth" thread and the **grounding gate** must reject it: a decision shows only if one of the query's
 distinctive *subject* words is in the retrieved threads — a shared action verb (buy · migrate · drop ·
