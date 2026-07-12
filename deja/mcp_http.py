@@ -27,6 +27,7 @@ from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from deja.arc import build_arc, render_record
+from deja.govern import check_decision as _check_decision
 from deja.memory import recall_memories
 
 _log = logging.getLogger(__name__)
@@ -81,6 +82,57 @@ async def recall_memory(
     result = await recall_memories(query, channel=channel, limit=max(limit, 6))
     return CallToolResult(
         content=[TextContent(type="text", text=render_memory(query, result))]
+    )
+
+
+def render_verdict(v: dict) -> str:
+    """A readable rendering of a governance verdict for the calling agent (Slackbot's LLM to relay).
+    The structured contract travels in `structuredContent`; this is the human-facing summary."""
+    verdict = v.get("verdict", "INCONCLUSIVE")
+    if verdict == "ALLOW":
+        return f"ALLOW — {v.get('rationale') or 'no standing decision conflicts with this. Proceed.'}"
+    if verdict == "CONFLICTS":
+        who = v.get("owner") or "the team"
+        when = f" on {v['decided_at']}" if v.get("decided_at") else ""
+        srcs = "\n".join(f"• {s}" for s in (v.get("sources") or []))
+        return (
+            f"CONFLICTS — this re-opens a standing decision by {who}{when}: "
+            f"“{v.get('standing_decision', '')}”. Discussed {v.get('times_discussed', 0)}×.\n"
+            f"Sources:\n{srcs}"
+        )
+    return f"INCONCLUSIVE — {v.get('rationale') or 'discussed but never resolved; no verdict invented.'}"
+
+
+@mcp_server.tool(
+    name="check_decision",
+    title="Check a proposal against the team's standing decisions",
+    description=(
+        "Governance check: before an agent (or a human) acts on a proposal, check whether it "
+        "conflicts with a decision the team already made. Returns a verdict an agent can gate on — "
+        "ALLOW (proceed), CONFLICTS (re-opens a settled decision; sources are clickable), or "
+        "INCONCLUSIVE (discussed but never resolved — Déjà never invents a verdict, and every "
+        "CONFLICTS/INCONCLUSIVE is backed by sources). Call before a consequential action "
+        "('migrate the job queue to Temporal', 'switch auth providers'). Any agent can adopt this."
+    ),
+    annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
+)
+async def check_decision(
+    proposal: str,
+    ctx: Context[ServerSession, None],
+) -> CallToolResult:
+    meta = ctx.request_context.meta
+    slack = (meta.model_extra or {}).get("slack", {}) if meta else {}
+    _log.info(
+        "mcp_http check_decision (slack user=%s team=%s) proposal=%r",
+        slack.get("user_id"),
+        slack.get("team_id"),
+        proposal,
+    )
+    # Same engine + same sourceless-verdict=0 invariant as the ambient card and the stdio server.
+    verdict = await _check_decision(proposal)
+    return CallToolResult(
+        content=[TextContent(type="text", text=render_verdict(verdict))],
+        structuredContent=verdict,
     )
 
 

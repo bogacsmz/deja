@@ -80,6 +80,16 @@ def test_skips_message_addressed_to_deja(monkeypatch):
     assert say.calls == []  # @mention → app_mentioned handles it, not ambient
 
 
+def test_never_brakes_slackbot(monkeypatch):
+    # Sponsor-safety: Slackbot is the collaborator, never a caught agent. Even a Slackbot message that
+    # would otherwise conflict must NOT be braked (a false guardrail on Slack's own bot = disqualifying).
+    say = _Say()
+    ev = _event("Opening a PR to migrate to Temporal", bot_id="B_SLACKBOT", ts="8.0")
+    ev["user"] = "USLACKBOT"
+    _drive(ev, say, monkeypatch, card=A_CARD)
+    assert say.calls == []
+
+
 def test_agent_message_classified_by_bot_id(monkeypatch):
     say = _Say()
     rc = _drive(_event("Opening a PR to migrate to Temporal", bot_id="B_OTHER"), say, monkeypatch, card=A_CARD)

@@ -101,7 +101,7 @@ if verdict["verdict"] == "CONFLICTS":
 ```
 
 `check_decision(proposal)` → `{verdict: ALLOW|CONFLICTS|INCONCLUSIVE, standing_decision, owner,
-decided_at, times_discussed, sources:[{text, permalink, channel, ts}], rationale}`. The verdict runs
+decided_at, times_discussed, sources: [permalink, …], rationale}`. The verdict runs
 the **same engine** as the ambient guardrail (judge → recall_arc → grounding gate). **A CONFLICTS with
 no sources downgrades to INCONCLUSIVE** — a fabricated brake is worse than none. Measured:
 [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) — false-conflicts **0**, sourceless **0**, owner **11/11**.

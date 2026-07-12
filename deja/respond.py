@@ -84,11 +84,14 @@ async def recall_card(
             await on_status(msg)
 
     decision = await judge(text)
-    # Humans get the should_recall gate (don't interrupt chit-chat). An agent proposal is checked
-    # regardless — the grounding gate + conflict test below are what keep it from being noisy.
-    if not is_agent and (not decision.should_recall or not decision.query):
+    # The should_recall gate applies to BOTH consumers — the agent path must NEVER be more permissive
+    # than the human one. Word overlap with a decision's subject is not, by itself, a proposal to
+    # re-open it: "anyone up for coffee before standup?" hits the async-standup decision lexically but
+    # is not a proposal, so the judge says should_recall=False → stay silent. Grounding + the conflict
+    # test are a second line of defense, not the first.
+    if not decision.should_recall or not decision.query:
         return None
-    query = decision.query or text
+    query = decision.query
 
     # expand=False: the live card stays fast + light on the rate-limited RTS (no LLM in the hot path).
     try:

@@ -28,6 +28,10 @@ as the card). No tuning; run once.
   ALLOW        ALLOW         Did we decide to buy a boat for the offsite?
   ALLOW        ALLOW         Are we migrating the office to Mars?
   ALLOW        ALLOW         Should we drop the ball on the holiday party
+  ALLOW        ALLOW         anyone up for coffee before standup?
+  ALLOW        ALLOW         let's grab lunch after the deploy
+  ALLOW        ALLOW         who's migrating to the new office?
+  ALLOW        ALLOW         should we roll back the party plan?
   INCONCLUSIVE INCONCLUSIVE  Should we adopt an RFC process for big decis
   INCONCLUSIVE INCONCLUSIVE  Can we introduce a design-doc process for ma
 
@@ -57,8 +61,12 @@ word never triggers a brake on an unrelated topic.
 
 ## The findings (honest — run once, no tuning)
 - **FALSE CONFLICTS = 0, SOURCELESS = 0.** The two errors that would disqualify a guardrail
-  never happened: not one false alarm, not one unsourced verdict. All three lexical traps
-  correctly ALLOW.
+  never happened: not one false alarm, not one unsourced verdict. Every trap correctly
+  ALLOWs — including the hardest class, non-proposal chit-chat whose keyword IS a real
+  decision subject ('anyone up for coffee before **standup**?', 'let's grab lunch after the
+  **deploy**'). One of these braked live once; the fix makes the agent path use the SAME
+  should_recall gate as the human path (an agent verdict is never more permissive than the
+  card), so word overlap alone can no longer raise a brake.
 - **Owner attribution measured for the first time: 11/11 right, 0 wrong.** We print '@X made
   the call' on the card and had never verified it — turns out the arc's decider matches the
   ground-truth owner every time here, so no threshold is needed (we kept the measurement so

@@ -119,10 +119,15 @@ async def check_decision(
     if not proposal:
         return _verdict(INCONCLUSIVE, rationale="No proposal provided.")
 
-    # Same judge as the live path for the search query. should_recall is ignored here — an agent
-    # calling check_decision is explicitly asking; we only need the judge's keyword extraction.
+    # Same judge as the live path — and the SAME should_recall gate the ambient card uses, so the
+    # verdict is never more permissive than the human path. If the input isn't a decision/proposal
+    # ("anyone up for coffee before standup?", "let's grab lunch after the deploy"), there is nothing
+    # to govern → ALLOW. Word overlap with a decision's subject is not, by itself, a proposal to
+    # re-open it; a brake that fires on chit-chat is the most expensive error we can make.
     decision = await judge(proposal)
-    query = decision.query or proposal
+    if not decision.should_recall or not decision.query:
+        return _verdict(ALLOW, rationale="Not a decision or proposal — nothing to govern.")
+    query = decision.query
 
     arc = await recall_arc(query, recall_fn=recall_fn, thread_fn=thread_fn, expand=expand)
 

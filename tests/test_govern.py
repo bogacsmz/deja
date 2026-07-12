@@ -106,6 +106,46 @@ def test_mode_b_allow_stays_silent(monkeypatch):
     )
 
 
+def test_allow_when_not_a_proposal_even_if_keyword_matches_a_decision(monkeypatch):
+    # "coffee before standup" lexically hits the async-standup decision, but it is NOT a proposal:
+    # the judge says should_recall=False → nothing to govern → ALLOW. A false brake on chit-chat is
+    # the most expensive error; it was caught live once and is locked here.
+    async def _judge(msg):
+        return TriggerDecision(False, "", "")
+
+    monkeypatch.setattr(trigger, "judge", _judge)
+    v = asyncio.run(
+        check_decision(
+            "anyone up for coffee before standup?",
+            recall_fn=local_recall,
+            thread_fn=local_thread,
+        )
+    )
+    assert v["verdict"] == ALLOW
+    assert v["sources"] == []  # never sourced a brake it didn't raise
+
+
+def test_mode_b_non_proposal_stays_silent(monkeypatch):
+    # The agent path must be NO more permissive than the human path: a non-proposal (should_recall
+    # False) stays silent even from a bot — word overlap with a decision's subject is not a proposal.
+    import deja.respond as respond
+
+    async def _judge(msg):
+        return TriggerDecision(False, "", "")
+
+    monkeypatch.setattr(respond, "judge", _judge)
+    card = asyncio.run(
+        respond.recall_card(
+            "anyone up for coffee before standup?",
+            None,
+            is_agent=True,
+            recall_fn=local_recall,
+            thread_fn=local_thread,
+        )
+    )
+    assert card is None
+
+
 def test_conflict_edge_cases_from_review():
     # bare "kept" past tense must also mark the kept clause (was a false CONFLICTS)
     assert not _conflicts("add a usage add-on", "reverted usage-based, kept a usage add-on")
