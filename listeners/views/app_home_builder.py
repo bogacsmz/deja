@@ -51,10 +51,10 @@ def _metrics_blocks() -> list[dict]:
         }
     ]
     btns = []
-    for d in s["top"]:
+    for i, d in enumerate(s["top"]):
         b: dict = {
             "type": "button",
-            "action_id": "deja_open_thread",
+            "action_id": f"deja_open_metric_{i}",  # must be unique within the view
             "text": {
                 "type": "plain_text",
                 "text": f"🔁 {_short_topic(d.get('topic', ''))} · {d.get('times_discussed', 0)}×",
@@ -92,7 +92,7 @@ def _recent_decisions_blocks() -> list[dict]:
         )
         return blocks
 
-    for d in decisions[:5]:
+    for i, d in enumerate(decisions[:5]):
         icon = d.get("icon") or "✅"
         headline = d.get("headline") or decision_headline(d.get("decision", ""))
         n = d.get("times_discussed", 0)
@@ -118,7 +118,7 @@ def _recent_decisions_blocks() -> list[dict]:
         if (d.get("url") or "").startswith("http"):
             row["accessory"] = {
                 "type": "button",
-                "action_id": "deja_open_thread",
+                "action_id": f"deja_open_dec_{i}",  # must be unique within the view
                 "text": {"type": "plain_text", "text": "Open ↗", "emoji": True},
                 "url": d["url"],
             }

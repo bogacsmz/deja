@@ -20,14 +20,15 @@ _FOOTER = ":robot_face: AI-generated summary · :lock: only channels you can acc
 _STATE_ICON = {"proposed": "💡", "adopted": "✅", "reversed": "↩️", "revived": "🔁"}
 
 
-def _open_accessory(url: str) -> dict | None:
+def _open_accessory(url: str, action_id: str) -> dict | None:
     """A native URL button — the ONLY reliably clickable way to link a Slack row to a thread. Inline
-    `<url|↗>` mrkdwn links silently break on the `&` in Slack permalinks; a button's `url` does not."""
+    `<url|↗>` mrkdwn links silently break on the `&` in Slack permalinks; a button's `url` does not.
+    `action_id` must be UNIQUE within the card — Slack rejects a whole view with duplicate ids."""
     if not (url or "").startswith("http"):
         return None
     return {
         "type": "button",
-        "action_id": "deja_open_thread",
+        "action_id": action_id,
         "text": {"type": "plain_text", "text": "Open ↗", "emoji": True},
         "url": url,
     }
@@ -225,7 +226,9 @@ def build_arc_card(
                     "type": "mrkdwn",
                     "text": f"{hero_icon}  *{_short(arc.standing_decision, 260)}*",
                 },
-                "accessory": _open_accessory(arc.sources[-1] if arc.sources else ""),
+                "accessory": _open_accessory(
+                    arc.sources[-1] if arc.sources else "", "deja_open_hero"
+                ),
             }
         )
         meta = "  ·  ".join(
@@ -280,7 +283,7 @@ def build_arc_card(
                 "text": f"{icon}  {date}*#{e.channel}* · _{e.author}_\n{_short(e.summary, 180)}",
             },
         }
-        acc = _open_accessory(e.permalink)
+        acc = _open_accessory(e.permalink, f"deja_open_tl_{i}")
         if acc:
             row["accessory"] = acc
         blocks.append(row)
@@ -321,7 +324,7 @@ def build_arc_card(
         actions.append(
             {
                 "type": "button",
-                "action_id": "deja_open_thread",
+                "action_id": "deja_open_src",
                 "text": {
                     "type": "plain_text",
                     "text": "🔗 Open source thread",

@@ -55,9 +55,18 @@ def test_settled_card_timeline_rows_are_clickable_buttons():
     ]
     assert row_buttons, "timeline rows must have an Open button"
     assert all(
-        btn["url"].startswith("http") and btn["action_id"] == "deja_open_thread"
+        btn["url"].startswith("http") and btn["action_id"].startswith("deja_open")
         for btn in row_buttons
     )
+    # action_ids must be UNIQUE across the whole card, or Slack rejects the view
+    ids = [
+        e["action_id"]
+        for b in build_arc_card("temporal", _rollback_arc())[0]
+        for e in ([b["accessory"]] if b.get("accessory") else [])
+        + (b.get("elements", []) if b.get("type") == "actions" else [])
+        if isinstance(e, dict) and e.get("action_id")
+    ]
+    assert len(ids) == len(set(ids)), f"duplicate action_id in card: {ids}"
 
 
 def test_ask_owner_button_only_when_owner_resolved():
