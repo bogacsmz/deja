@@ -24,6 +24,7 @@ load_dotenv(
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from deja.arc import as_record, build_arc  # noqa: E402
+from deja.govern import check_decision as _check_decision  # noqa: E402
 from deja.memory import recall_memories  # noqa: E402
 
 mcp = FastMCP("deja")
@@ -52,6 +53,34 @@ async def recall_memory(query: str, channel: str | None = None, limit: int = 3) 
     result = await recall_memories(query, channel=channel, limit=max(limit, 6))
     result["record"] = as_record(build_arc(query, result.get("memories", [])))
     return result
+
+
+@mcp.tool(
+    annotations={
+        "title": "Check a proposal against the team's standing decisions",
+        "readOnlyHint": True,  # never mutates — safe to call without per-call approval
+        "openWorldHint": False,
+    }
+)
+async def check_decision(proposal: str) -> dict:
+    """Governance check: before an agent (or a human) acts on a proposal, check whether it conflicts
+    with a decision the team already made. Returns a verdict an agent can gate on.
+
+    Call this before taking an action a team might have already settled — "migrate the job queue to
+    Temporal", "switch auth providers", "adopt an RFC process". Any agent in Slack can adopt this.
+
+    Args:
+        proposal: The action/proposal in free text (e.g. "migrate the job queue to Temporal").
+
+    Returns:
+        {verdict, standing_decision, owner, decided_at, times_discussed, sources[], rationale} where
+        verdict is one of:
+          ALLOW        — nothing on record contradicts it (proceed).
+          CONFLICTS    — re-opens a decision the team settled the other way; `sources` are clickable.
+          INCONCLUSIVE — discussed but never resolved, or grounding can't confirm a decision. Déjà
+                         never invents a verdict — every CONFLICTS/INCONCLUSIVE is backed by sources.
+    """
+    return await _check_decision(proposal)
 
 
 def main() -> None:
