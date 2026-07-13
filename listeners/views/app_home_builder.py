@@ -6,12 +6,12 @@ so adding it later won't mean rewriting Home."""
 from __future__ import annotations
 
 # Example prompts the jury can paste straight into a channel (no @mention needed — Déjà is ambient).
+# Chosen to show the full range incl. the silences: a card, a correct silence, an INCONCLUSIVE, a trap.
 _TRY_THESE = (
-    "should we move to usage-based pricing?",
-    "did we build or buy auth?",
-    "what's our observability stack?",
-    "should we write an RFC for the new API?",
-    "let's migrate to Temporal for the new pipeline",
+    "let's migrate the job queue to Temporal          # → a card: already rolled back",
+    "should we adopt GraphQL for the public API?      # → silent: nothing on record (working)",
+    "should we adopt an RFC process for big decisions? # → 'discussed, never landed. I won't invent one.'",
+    "did we decide to buy a boat?                     # → silent: a word matches, the topic doesn't",
 )
 
 
@@ -140,14 +140,20 @@ def _try_these_blocks() -> list[dict]:
     """Copy-paste onboarding — the jury starts here."""
     fenced = "```\n" + "\n".join(_TRY_THESE) + "\n```"
     return [
-        {"type": "section", "text": {"type": "mrkdwn", "text": "*Try these*"}},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Try these*  ·  _Déjà only speaks up when it matters — silence means nothing's on record, which is the product working._",
+            },
+        },
         {"type": "section", "text": {"type": "mrkdwn", "text": fenced}},
         {
             "type": "context",
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": "Type any of these in a channel I'm in — no need to mention me. I brake conflicts from a human _or an agent_, and stay silent otherwise. Agents can also ask me directly via `check_decision`.",
+                    "text": "Paste any line into a channel I'm in — no @mention needed. I brake conflicts from a human _or an agent_, stay silent otherwise; agents can also ask me directly via `check_decision`. ⏱️ Slack Real-Time Search is rate-limited to ~1 call every few minutes — wait a bit between tries.",
                 }
             ],
         },
