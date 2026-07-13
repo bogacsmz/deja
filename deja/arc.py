@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 _MONTHS = {
     m: i
@@ -464,14 +464,6 @@ async def recall_arc(
     from deja.expand import expand_query, keep_specific
     from deja.memory import recall_memories
 
-    # Canonical memory first (the flywheel): if the team explicitly SAVED a decision on this named
-    # product, return it instantly — sourced, no RTS. Strict subject match, so it never fires for an
-    # unrelated query. Skipped for the injected (benchmark) retrieval so the benchmark measures search.
-    if recall_fn is None:
-        canon = _canonical(query)
-        if canon is not None:
-            return canon
-
     # Multi-query: if the query NAMES products, also recall by each name directly. The judge's phrasing
     # may lead retrieval to an incidental word ('Datadog billing' → the pricing thread); a recall on
     # 'Datadog' pulls the actual Datadog threads. The grounding filter below then keeps the on-topic
@@ -537,4 +529,24 @@ async def recall_arc(
     # retrieved threads aren't about what the query names, we found nothing — never a guess.
     if arc is not None and not _grounded(query, memories):
         arc = None
+
+    # Canonical memory (the flywheel) is consulted LAST, and it may only speak for the decision TEXT.
+    # `times_discussed` and `sources` ALWAYS come from the retrieved arc — "this came up N times" and
+    # every permalink behind it are reconstructed from the raw conversation, or the claim isn't ours
+    # to make. A store-backed count would (a) bypass the reconstruction the product is built on and
+    # (b) let the two consumers disagree, since only one of them would be reading the store. The store
+    # answers alone ONLY when retrieval came back empty (RTS rate-limited): then it says what it can
+    # link — one sourced thread — which is modest, not wrong.
+    if recall_fn is None:
+        canon = _canonical(query)
+        if canon is not None:
+            if arc is None:
+                return canon
+            if not arc.inconclusive:
+                arc = replace(
+                    arc,
+                    standing_decision=canon.standing_decision or arc.standing_decision,
+                    owner=canon.owner or arc.owner,
+                    decided_at=canon.decided_at or arc.decided_at,
+                )
     return arc

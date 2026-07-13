@@ -773,5 +773,15 @@
   "should_recall": true,
   "query": "party plan rollback",
   "reason": "revisits a past decision"
+ },
+ "does migrating the job queue to Temporal conflict with a standing decision?": {
+  "should_recall": true,
+  "query": "Temporal job queue migration",
+  "reason": "proposal referencing possible prior decision"
+ },
+ "migrate the job queue to Temporal": {
+  "should_recall": true,
+  "query": "job queue Temporal migration",
+  "reason": "proposal/decision about past migration effort"
  }
 }
