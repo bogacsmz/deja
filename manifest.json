@@ -55,6 +55,8 @@
         "users:read",
         "assistant:write",
         "mcp:connect",
+        "canvases:read",
+        "canvases:write",
         "users:read.email"
       ]
     }
