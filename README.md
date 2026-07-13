@@ -1,3 +1,5 @@
+![Déjà](assets/deja-readme-hero.png)
+
 # Déjà — the decision-governance layer for your Slack workspace
 
 > **Slack is filling up with agents. None of them know what your team already decided.**
@@ -103,6 +105,10 @@ owner attribution 11/11 · precision 100% / recall 62%.** The 3 missed brakes ar
 (a positive adoption naming its rejected alternative *without* a rejection cue) — we would rather miss
 a brake than raise a false one. Full method + the missed cases: [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md).
 External validation on 8 real OSS decision histories: [`docs/EXTERNAL.md`](docs/EXTERNAL.md).
+
+## Architecture
+
+![Architecture](assets/deja-architecture.png)
 
 ## The governance contract — any agent can ask before it acts
 

@@ -1,5 +1,7 @@
 # Déjà — Architecture
 
+![Architecture](../assets/deja-architecture.png)
+
 Déjà is the **decision-governance layer** for a Slack workspace: it reads the team's standing
 decisions out of their own history and, when a proposal conflicts with one, drops a **sourced**
 guardrail. The same engine has **two consumers** — an **ambient watcher** (Déjà reads every message,
