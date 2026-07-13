@@ -183,6 +183,9 @@ INCONCLUSIVE are visible. Loop-safety is covered by hermetic tests (`tests/test_
   account's user token, so it reaches exactly the channels that one account can — not the channels the
   *asking* user can. Per-viewer permission scoping requires per-user OAuth: documented here, not
   shipped. We say "channels this app can access," never "channels *you* can access."
+- **Two MCP tools, two jobs.** `recall_memory` is a **lexical lookup** (the raw retrieval); on a bare
+  question it can surface an adjacent thread. `check_decision` is the **governance path** — judge →
+  arc → grounded verdict, sourceless-verdict = 0. For "did we decide X?" questions, use `check_decision`.
 
 ## Security
 

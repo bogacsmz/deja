@@ -41,6 +41,10 @@ Cursor calls the `recall_memory` tool → returns the structured memory (source 
 next* = the rollback, permalink). This is the composability story: the same memory, callable from
 outside Slack.
 
+> `recall_memory` is lexical lookup; **`check_decision` is the governance path.** For a decision
+> question ("did we decide X?"), call **`check_decision`** — it returns a grounded, sourced verdict
+> (never invents one). `recall_memory` on a bare question can surface an adjacent thread.
+
 ## If the live demo wobbles — backup plan
 
 Don't fight flaky Wi-Fi or RTS indexing on stage. Fall back to the deterministic proofs:
