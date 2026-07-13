@@ -20,7 +20,7 @@ separately):
 |---|---|
 | `SLACK_BOT_TOKEN` (`xoxb-`) | the bot identity that posts cards |
 | `SLACK_APP_TOKEN` (`xapp-`) | Socket Mode connection |
-| `SLACK_USER_TOKEN` (`xoxp-`) | RTS search (installer-scoped — see README Honest limits) |
+| `SLACK_USER_TOKEN` (`xoxp-`) | RTS search (installer-scoped — see SUBMISSION.md → Honest limits) |
 | `SLACK_SIGNING_SECRET` | verifies Slack's signature on `/mcp` (fail-closed 401) |
 | `CLAUDE_CODE_OAUTH_TOKEN` | the judge LLM, on a **Claude Max subscription** (no paid API key) |
 | `DEJA_BOT_USER_ID`, `DEJA_OWNER_FALLBACK` | self-message filter + Ask-the-owner routing |

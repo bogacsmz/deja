@@ -20,7 +20,7 @@ Slack — including Slack's own — can adopt `check_decision` in five lines.
 Every request is **Slack-signature verified and fail-closed**: an unsigned or forged `POST /mcp` gets
 `401` before it reaches a tool (`SlackSignatureMiddleware`, `slack_identity_auth`). Both tools are
 annotated **read-only**. Retrieval runs on the installer's user token (permission-scoped to that
-account, not per-caller — see the README's Honest limits). Covered hermetically in
+account, not per-caller — see SUBMISSION.md → Honest limits). Covered hermetically in
 `tests/test_mcp_http.py`.
 
 ## Verified live (the money beat)

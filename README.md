@@ -135,7 +135,7 @@ no sources downgrades to INCONCLUSIVE** — a fabricated brake is worse than non
 `recall_memory(query, channel=None, limit=3)` → `{summary, memories:[{source_message,
 what_happened_next, channel, author, ts, permalink, score}], searched}` is unchanged and still there
 for pure lookup. Both run on the installer's user token, so they only ever reach the channels the
-installing account can access (not per-caller — see Honest limits). Verify end-to-end with `python scripts/mcp_smoke.py`.
+installing account can access (not per-caller — see [Honest limits](docs/SUBMISSION.md#honest-limits)). Verify end-to-end with `python scripts/mcp_smoke.py`.
 
 ```bash
 python -m deja.mcp_server   # stdio (Cursor/Claude Desktop); DEJA_MCP_TRANSPORT=streamable-http for remote

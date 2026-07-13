@@ -183,6 +183,13 @@ INCONCLUSIVE are visible. Loop-safety is covered by hermetic tests (`tests/test_
   account's user token, so it reaches exactly the channels that one account can — not the channels the
   *asking* user can. Per-viewer permission scoping requires per-user OAuth: documented here, not
   shipped. We say "channels this app can access," never "channels *you* can access."
+- **The saved-decision store may only speak when retrieval is silent.** A 💾 Saved decision never
+  overrides a reconstructed arc — not its verdict, not its text, not its count, not its sources. (It
+  used to override the text, which is the same thing as overriding the verdict, because that is what
+  the conflict detector reads; `tests/test_store_blind.py` now poisons the store and asserts the
+  verdict does not move.) The store answers **alone** in exactly one case: RTS came back empty (it is
+  rate-limited to ~1 call / few minutes). Then it reports only what a human explicitly saved, with the
+  one permalink it can link — modest, and still sourced.
 - **Two MCP tools, two jobs.** `recall_memory` is a **lexical lookup** (the raw retrieval); on a bare
   question it can surface an adjacent thread. `check_decision` is the **governance path** — judge →
   arc → grounded verdict, sourceless-verdict = 0. For "did we decide X?" questions, use `check_decision`.
