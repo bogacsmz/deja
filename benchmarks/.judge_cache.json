@@ -753,5 +753,25 @@
   "should_recall": true,
   "query": "design-doc process",
   "reason": "proposal for team process"
+ },
+ "anyone up for coffee before standup?": {
+  "should_recall": false,
+  "query": "",
+  "reason": "casual logistics, not substantive"
+ },
+ "let's grab lunch after the deploy": {
+  "should_recall": false,
+  "query": "",
+  "reason": "casual logistics, not substantive"
+ },
+ "who's migrating to the new office?": {
+  "should_recall": true,
+  "query": "office migration new office",
+  "reason": "logistics decision/plan worth checking past discussion"
+ },
+ "should we roll back the party plan?": {
+  "should_recall": true,
+  "query": "party plan rollback",
+  "reason": "revisits a past decision"
  }
 }

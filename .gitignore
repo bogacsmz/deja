@@ -52,3 +52,6 @@ pip
 tmp.txt
 deja_decisions.json
 .slack/
+
+# Slack CLI local project state (project_id, hooks) — not for a public repo
+.slack/
