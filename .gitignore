@@ -54,3 +54,6 @@ deja_decisions.json
 
 # Slack CLI local project state (project_id, hooks) — not for a public repo
 .slack/
+
+# workspace-specific seed ts→tag map (not for public repo)
+seed_tag_map.json
