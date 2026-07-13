@@ -19,7 +19,7 @@
   },
   "oauth_config": {
     "redirect_urls": [
-      "https://YOUR-TUNNEL.ngrok-free.dev/slack/oauth_redirect"
+      "https://deja-production.up.railway.app/slack/oauth_redirect"
     ],
     "scopes": {
       "user": [
@@ -81,7 +81,7 @@
   },
   "mcp_servers": {
     "Deja": {
-      "url": "https://YOUR-TUNNEL.ngrok-free.dev/mcp",
+      "url": "https://deja-production.up.railway.app/mcp",
       "auth_type": "slack_identity_auth"
     }
   }
