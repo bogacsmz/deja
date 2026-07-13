@@ -134,6 +134,8 @@ watcher)/actions/views · `planner_bot/` — the demo agent Déjà puts on trial
 verify + smoke · `benchmarks/` · `tests/` · `docs/`. The Bolt starter-template README this was
 scaffolded from is preserved below.
 
+<sub>Scaffolded from [Slack's Bolt for Python starter template](https://github.com/slack-samples/bolt-python-starter-agent) (MIT). The recall engine, decision arc, governance layer, MCP tools, benchmarks, and everything above are Déjà's own.</sub>
+
 ---
 
 # Starter Agent for Slack (Bolt for Python and Claude Agent SDK)
