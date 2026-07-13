@@ -30,7 +30,13 @@ from deja.memory import recall_memories  # noqa: E402
 mcp = FastMCP("deja")
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "title": "Recall team memory",
+        "readOnlyHint": True,  # never mutates — safe to call without per-call approval
+        "openWorldHint": False,
+    }
+)
 async def recall_memory(query: str, channel: str | None = None, limit: int = 3) -> dict:
     """Search this Slack workspace's history for prior decisions or claims relevant to a question,
     and return the concrete past thread plus what the team decided. Permission-aware: only searches

@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 _MONTHS = {
     m: i
@@ -530,23 +530,19 @@ async def recall_arc(
     if arc is not None and not _grounded(query, memories):
         arc = None
 
-    # Canonical memory (the flywheel) is consulted LAST, and it may only speak for the decision TEXT.
-    # `times_discussed` and `sources` ALWAYS come from the retrieved arc — "this came up N times" and
-    # every permalink behind it are reconstructed from the raw conversation, or the claim isn't ours
-    # to make. A store-backed count would (a) bypass the reconstruction the product is built on and
-    # (b) let the two consumers disagree, since only one of them would be reading the store. The store
-    # answers alone ONLY when retrieval came back empty (RTS rate-limited): then it says what it can
-    # link — one sourced thread — which is modest, not wrong.
-    if recall_fn is None:
-        canon = _canonical(query)
-        if canon is not None:
-            if arc is None:
-                return canon
-            if not arc.inconclusive:
-                arc = replace(
-                    arc,
-                    standing_decision=canon.standing_decision or arc.standing_decision,
-                    owner=canon.owner or arc.owner,
-                    decided_at=canon.decided_at or arc.decided_at,
-                )
+    # Canonical memory (the flywheel) is consulted LAST, and it may NOT speak over a reconstructed arc.
+    #
+    # It used to overwrite the standing decision's TEXT when a saved record matched the query's named
+    # subject — "the store only speaks for the text" sounded modest. It isn't: the text IS the verdict.
+    # `govern._conflicts()` reads the standing decision's wording to decide whether a proposal re-opens
+    # something the team rejected, so a saved record whose phrasing carries no rejection cue silently
+    # turned CONFLICTS into ALLOW — one click of 💾 Save could disable the brake it had just fired.
+    # A guardrail whose off-switch is a text field is not a guardrail. The verdict, the count and the
+    # sources are reconstructed from the raw conversation, or they are not ours to claim.
+    # (tests/test_store_blind.py pins this: poison the store, the verdict must not move.)
+    #
+    # The store still answers ALONE when retrieval came back empty (RTS rate-limited) — then it says
+    # only what a human explicitly saved and what it can link: one sourced thread. Modest, not wrong.
+    if recall_fn is None and arc is None:
+        return _canonical(query)
     return arc

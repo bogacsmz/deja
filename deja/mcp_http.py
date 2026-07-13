@@ -158,9 +158,19 @@ class SlackSignatureMiddleware:
         body = await request.body()
 
         secret = os.environ.get("SLACK_SIGNING_SECRET")
-        ok = bool(secret) and SignatureVerifier(signing_secret=secret).is_valid_request(
-            body, dict(request.headers)
-        )
+        # Fail CLOSED on anything unexpected. slack_sdk's verifier does `int(timestamp)` on the raw
+        # X-Slack-Request-Timestamp header with no guard, so a junk value ("abc", "", "1e9999") raises
+        # ValueError — which, unhandled, would turn an UNAUTHENTICATED request into a 500 on a public
+        # URL. Any failure to prove the request is a genuine, fresh Slack request is a 401, full stop.
+        # (slack_sdk also enforces the 5-minute replay window and compares in constant time; both are
+        # pinned by tests/test_robustness.py.)
+        ok = False
+        try:
+            ok = bool(secret) and SignatureVerifier(
+                signing_secret=secret
+            ).is_valid_request(body, dict(request.headers))
+        except Exception as e:  # noqa: BLE001 — malformed headers are an auth failure, not a crash
+            _log.warning("mcp_http: malformed signature headers, rejecting: %s", e)
         if not ok:
             if not secret:
                 _log.error("SLACK_SIGNING_SECRET not set — rejecting /mcp request")
