@@ -135,6 +135,20 @@ async def recall_memories(
             root_ts = parent.get("ts") or h.ts
             found = pick_decision(msgs, require_decision=True)
             decision = found[0] if found else ""
+            # An AGENT'S PROPOSAL IS NOT EVIDENCE OF A PAST DECISION. When an app speaks as itself
+            # (a bot_profile / its own bot user — not a human, and not a chat.customize persona,
+            # which carries `username` and no `user`) and nothing was decided in its thread, that
+            # message is a proposal awaiting judgment — the very thing we're about to govern. Counting
+            # it as prior discussion would let a proposal cite itself as its own precedent, and would
+            # split the two consumers: the ambient watcher already drops it (it's the message being
+            # judged), so the MCP path must drop it too, or the same topic reports two different
+            # numbers. A decided agent thread still counts — it's the *proposal*, not the author,
+            # that is disqualified.
+            if not decision and (
+                parent.get("bot_profile")
+                or (parent.get("bot_id") and parent.get("user"))
+            ):
+                continue
             # Author = the decider (decision reply) if any, else whoever opened the thread. RTS
             # can't see chat:write.customize usernames — the fetched thread messages can.
             parent_author = parent.get("username") or parent.get("user", "")
