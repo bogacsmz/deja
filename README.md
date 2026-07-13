@@ -1,5 +1,10 @@
 ![Déjà](assets/deja-readme-hero.png)
 
+<sub>The numbers on the banner are the **adversarial** suite (83 hostile queries over this workspace):
+0 confident-wrong, 0 false CONFLICTS, 0 sourceless verdicts, 96% recall. On the **external** benchmark —
+real, publicly documented decisions from workspaces the engine never saw — it is **6/8 with 1
+confident-wrong**, published in [docs/EXTERNAL.md](docs/EXTERNAL.md). We report the number that hurts.</sub>
+
 # Déjà — the decision-governance layer for your Slack workspace
 
 > **Slack is filling up with agents. None of them know what your team already decided.**

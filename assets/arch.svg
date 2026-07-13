@@ -139,5 +139,5 @@
 <text x="88" y="900" font-family="Lato" font-weight="900" font-size="17" fill="#FFFFFF">The invariant: no source → INCONCLUSIVE.</text>
 <text x="88" y="926" font-family="Lato" font-weight="400" font-size="15" fill="#A5B4FC">A guardrail that fabricates is worse than no guardrail at all. Every number on a card is backed by a link you can click.</text>
 <text x="1074" y="900" font-family="Lato" font-weight="900" font-size="15" fill="#FFFFFF">Measured, not claimed</text>
-<text x="1074" y="926" font-family="Lato" font-weight="400" font-size="14" fill="#A5B4FC">confident-wrong 0 · false CONFLICTS 0 · sourceless 0</text>
+<text x="1074" y="926" font-family="Lato" font-weight="400" font-size="14" fill="#A5B4FC">sourceless 0 · false CONFLICTS 0 · confident-wrong 0 (83 adversarial; external: 1)</text>
 </svg>
