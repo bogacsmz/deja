@@ -1,8 +1,9 @@
 [project]
 name = "slackhack"
 version = "0.1.0"
-license = "Apache-2.0"
 requires-python = ">=3.12"
+# License: Apache-2.0 — see LICENSE + NOTICE. (No PEP 639 `license` string here: it needs
+# setuptools>=77 and breaks the Railway/Nixpacks build's dependency install on older setuptools.)
 dependencies = [
     "slack-sdk==3.43.0",
     "slack-bolt==1.29.0",
