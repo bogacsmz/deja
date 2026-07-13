@@ -55,20 +55,32 @@ def _resolve_channel(client: WebClient, name: str) -> str:
         cursor = (resp.get("response_metadata") or {}).get("next_cursor")
         if not cursor:
             break
-    sys.exit(f"channel '{name}' not found — pass the channel ID, or add channels:read + invite the bot")
+    sys.exit(
+        f"channel '{name}' not found — pass the channel ID, or add channels:read + invite the bot"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Planner Bot — post demo proposals for Déjà to judge.")
-    ap.add_argument("--channel", required=True, help="channel ID (recommended) or #name")
+    ap = argparse.ArgumentParser(
+        description="Planner Bot — post demo proposals for Déjà to judge."
+    )
+    ap.add_argument(
+        "--channel", required=True, help="channel ID (recommended) or #name"
+    )
     ap.add_argument("--scene", type=int, choices=[1, 2, 3], help="post one scene")
-    ap.add_argument("--all", action="store_true", help="post all three, paced for the demo")
-    ap.add_argument("--delay", type=float, default=12.0, help="seconds between scenes with --all")
+    ap.add_argument(
+        "--all", action="store_true", help="post all three, paced for the demo"
+    )
+    ap.add_argument(
+        "--delay", type=float, default=12.0, help="seconds between scenes with --all"
+    )
     args = ap.parse_args(argv)
 
     token = os.environ.get("PLANNER_BOT_TOKEN")
     if not token:
-        sys.exit("set PLANNER_BOT_TOKEN (xoxb-…) — the Planner Bot's OWN Slack app token, not Déjà's")
+        sys.exit(
+            "set PLANNER_BOT_TOKEN (xoxb-…) — the Planner Bot's OWN Slack app token, not Déjà's"
+        )
 
     scenes = [args.scene] if args.scene else ([1, 2, 3] if args.all else [])
     if not scenes:

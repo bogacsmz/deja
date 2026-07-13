@@ -67,9 +67,10 @@ async def handle_message(
     # 🔴 Sponsor-safety (never negotiable): Slackbot is the collaborator, not a caught agent. Déjà
     # never brakes Slackbot — a false guardrail on Slack's own bot would misrepresent the sponsor.
     # Skip by its universal user id and by bot-profile name as a safety net.
-    if event.get("user") == "USLACKBOT" or (event.get("bot_profile") or {}).get(
-        "name"
-    ) == "Slackbot":
+    if (
+        event.get("user") == "USLACKBOT"
+        or (event.get("bot_profile") or {}).get("name") == "Slackbot"
+    ):
         return
 
     text = (event.get("text") or "").strip()

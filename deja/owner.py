@@ -15,7 +15,9 @@ import re
 
 _log = logging.getLogger(__name__)
 _USER_ID = re.compile(r"^[UW][A-Z0-9]{6,}$")
-_NAME_MAP: dict[str, str] | None = None  # lowercased display/real name -> user id (cached)
+_NAME_MAP: dict[str, str] | None = (
+    None  # lowercased display/real name -> user id (cached)
+)
 
 
 async def _name_map(client) -> dict[str, str]:

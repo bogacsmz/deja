@@ -67,7 +67,9 @@ def _ordinal(n: int) -> str:
     return f"{n}{suffix}"
 
 
-async def handle_ask_owner(ack: Ack, body: dict, client: AsyncWebClient, logger: Logger):
+async def handle_ask_owner(
+    ack: Ack, body: dict, client: AsyncWebClient, logger: Logger
+):
     """'🗣️ Ask the decision owner' — Déjà stops merely reminding and starts COORDINATING: it drops a
     short nudge in the thread, @-mentioning whoever made the call, with the standing decision + when."""
     await ack()

@@ -50,7 +50,9 @@ def _thread_msgs(thread) -> list[dict]:
     return msgs
 
 
-def _marker_locations(user: WebClient, channels: dict[str, str]) -> dict[str, tuple[str, str]]:
+def _marker_locations(
+    user: WebClient, channels: dict[str, str]
+) -> dict[str, tuple[str, str]]:
     """marker -> (channel_id, message_ts) for every seeded arc thread present in the workspace."""
     wanted = {th.marker for arc in ARCS.values() for th in arc}
     loc: dict[str, tuple[str, str]] = {}
@@ -79,7 +81,9 @@ def main(argv: list[str] | None = None) -> int:
         if not hit:
             return ""
         try:
-            return user.chat_getPermalink(channel=hit[0], message_ts=hit[1])["permalink"]
+            return user.chat_getPermalink(channel=hit[0], message_ts=hit[1])[
+                "permalink"
+            ]
         except Exception:  # noqa: BLE001
             return ""
 
@@ -137,12 +141,16 @@ def main(argv: list[str] | None = None) -> int:
             "url": arc_obj.sources[-1] if arc_obj.sources else "",
         }
         link = "🔗" if record["url"] else "⚠️ no-link"
-        print(f"  {icon} {link} {name}: {headline or record['decision'][:50]}  ({record['owner']}, {record['at']})")
+        print(
+            f"  {icon} {link} {name}: {headline or record['decision'][:50]}  ({record['owner']}, {record['at']})"
+        )
         if not dry:
             save_decision(record, saved_by="seed")
             saved += 1
 
-    print(f"\n[seed-store] {'DRY RUN — nothing written' if dry else f'{saved} decision(s) written'}")
+    print(
+        f"\n[seed-store] {'DRY RUN — nothing written' if dry else f'{saved} decision(s) written'}"
+    )
     return 0
 
 

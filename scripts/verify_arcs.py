@@ -56,11 +56,20 @@ async def main() -> int:
     # A noise query must not yield a STANDING DECISION (no fake decision on chatter). An
     # inconclusive/empty result is the honest, correct outcome.
     noise_ok = noise is None or noise.inconclusive
-    print(f"  standing: {noise.standing_decision if noise else '(none)'} -> "
-          f"{'no fake decision ✓' if noise_ok else 'UNEXPECTED standing decision'}")
+    print(
+        f"  standing: {noise.standing_decision if noise else '(none)'} -> "
+        f"{'no fake decision ✓' if noise_ok else 'UNEXPECTED standing decision'}"
+    )
     ok = ok and noise_ok
 
-    print("\n" + ("✅ arcs reconstructed" if ok else "⚠️ some arcs incomplete (RTS indexing? re-run)"))
+    print(
+        "\n"
+        + (
+            "✅ arcs reconstructed"
+            if ok
+            else "⚠️ some arcs incomplete (RTS indexing? re-run)"
+        )
+    )
     return 0 if ok else 1
 
 

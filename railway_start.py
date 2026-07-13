@@ -34,7 +34,9 @@ async def main() -> None:
 
     app_token = os.environ.get("SLACK_APP_TOKEN")
     if not app_token:
-        raise SystemExit("SLACK_APP_TOKEN missing — socket mode needs an app-level token (xapp-…).")
+        raise SystemExit(
+            "SLACK_APP_TOKEN missing — socket mode needs an app-level token (xapp-…)."
+        )
 
     port = int(os.environ.get("PORT") or os.environ.get("DEJA_MCP_HTTP_PORT", "3000"))
     handler = AsyncSocketModeHandler(bolt_app, app_token)

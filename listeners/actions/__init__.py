@@ -8,11 +8,9 @@ from .deja_card import (
     handle_open_thread,
     handle_save_decision,
 )
-from .feedback_buttons import handle_feedback_button
 
 
 def register(app: AsyncApp):
-    app.action("feedback")(handle_feedback_button)
     # Every "open thread" button carries a UNIQUE action_id (Slack rejects a view with duplicates),
     # so match them all by prefix — they only ack (the URL opens natively).
     app.action(re.compile(r"^deja_open"))(handle_open_thread)

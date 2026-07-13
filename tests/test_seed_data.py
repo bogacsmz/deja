@@ -42,14 +42,20 @@ def test_arc_threads_are_populated_dated_and_attributed():
             assert t.channel and not t.channel.startswith("#")
             assert t.marker.startswith("‹deja-arc:") and t.marker.endswith("›")
             assert t.parent.text.strip()
-            assert _DATE.search(t.parent.text), f"{t.marker} parent missing a [Mon DD] date"
+            assert _DATE.search(t.parent.text), (
+                f"{t.marker} parent missing a [Mon DD] date"
+            )
             # every author is a real persona (has an avatar), never the raw sandbox user
             for msg in (t.parent, *t.replies):
-                assert msg.author in AUTHORS, f"{t.marker}: unknown author {msg.author!r}"
+                assert msg.author in AUTHORS, (
+                    f"{t.marker}: unknown author {msg.author!r}"
+                )
 
 
 def test_spans_multiple_channels():
-    assert len({t.channel for t in ALL_THREADS}) >= 4, "seed should span several channels"
+    assert len({t.channel for t in ALL_THREADS}) >= 4, (
+        "seed should span several channels"
+    )
 
 
 def test_is_decision_helper():

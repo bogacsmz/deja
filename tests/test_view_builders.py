@@ -1,15 +1,4 @@
 from listeners.views.app_home_builder import build_app_home_view
-from listeners.views.feedback_builder import build_feedback_blocks
-
-
-def test_build_feedback_blocks():
-    blocks = build_feedback_blocks()
-
-    assert len(blocks) > 0
-    # The block should contain a feedback action
-    block_dict = blocks[0].to_dict()
-    action_ids = [e["action_id"] for e in block_dict["elements"]]
-    assert "feedback" in action_ids
 
 
 def test_home_view_structure():
@@ -37,7 +26,9 @@ def test_home_view_explains_and_states_privacy():
     """It says what Déjà does and makes the permission-aware privacy promise."""
     text = _all_text(build_app_home_view())
     assert "what your team already decided" in text  # what it does
-    assert "channels this app can access" in text  # accurate permission-scope promise (installer, not viewer)
+    assert (
+        "channels this app can access" in text
+    )  # accurate permission-scope promise (installer, not viewer)
 
 
 def test_home_view_ignores_legacy_args():

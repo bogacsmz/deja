@@ -40,7 +40,11 @@ CASES: list[tuple[str, str, str | None]] = [
     ("Proposing we standardize the datastore on MongoDB.", CONFLICTS, "Maya Chen"),
     ("Let's self-host our own Kubernetes cluster.", CONFLICTS, "Sam Okoro"),
     ("We should build our own auth in-house.", CONFLICTS, "Diego Santos"),
-    ("Let's standardize the UI on MUI as our component library.", CONFLICTS, "Maya Chen"),
+    (
+        "Let's standardize the UI on MUI as our component library.",
+        CONFLICTS,
+        "Maya Chen",
+    ),
     ("Proposing a public GA launch this quarter.", CONFLICTS, "Maya Chen"),
     # --- ALIGNED with the standing decision → ALLOW (must NOT false-alarm) ---
     ("Proposing we add a usage add-on for heavy accounts.", ALLOW, "Diego Santos"),
@@ -56,16 +60,40 @@ CASES: list[tuple[str, str, str | None]] = [
     ("Should we adopt Terraform for infrastructure?", ALLOW, None),
     # --- LEXICAL TRAPS: a word overlaps a decision but the topic is unrelated → must NOT be CONFLICTS
     ("Did we decide to buy a boat for the offsite?", ALLOW, None),  # buy ↔ BUYING auth
-    ("Are we migrating the office to Mars?", ALLOW, None),  # migrate ↔ Temporal migration
-    ("Should we drop the ball on the holiday party?", ALLOW, None),  # drop ↔ DROPPING Datadog
+    (
+        "Are we migrating the office to Mars?",
+        ALLOW,
+        None,
+    ),  # migrate ↔ Temporal migration
+    (
+        "Should we drop the ball on the holiday party?",
+        ALLOW,
+        None,
+    ),  # drop ↔ DROPPING Datadog
     # --- NON-PROPOSAL NOISE whose keyword IS a real decision subject → the hardest false-alarm class.
     # These are chit-chat, not proposals; the should_recall gate (agent path == human path) must keep
     # them silent even though 'standup'/'deploy' name a genuine standing decision. Caught live once
     # ("coffee before standup" braked the async-standup decision); must be ALLOW now.
-    ("anyone up for coffee before standup?", ALLOW, None),  # standup ↔ async-standup decision
-    ("let's grab lunch after the deploy", ALLOW, None),  # deploy ↔ continuous-deploy decision
-    ("who's migrating to the new office?", ALLOW, None),  # migrating ↔ Temporal (subject: office)
-    ("should we roll back the party plan?", ALLOW, None),  # roll back ↔ rollback (subject: party)
+    (
+        "anyone up for coffee before standup?",
+        ALLOW,
+        None,
+    ),  # standup ↔ async-standup decision
+    (
+        "let's grab lunch after the deploy",
+        ALLOW,
+        None,
+    ),  # deploy ↔ continuous-deploy decision
+    (
+        "who's migrating to the new office?",
+        ALLOW,
+        None,
+    ),  # migrating ↔ Temporal (subject: office)
+    (
+        "should we roll back the party plan?",
+        ALLOW,
+        None,
+    ),  # roll back ↔ rollback (subject: party)
     # --- discussed but never decided → INCONCLUSIVE (won't invent a verdict) ---
     ("Should we adopt an RFC process for big decisions?", INCONCLUSIVE, None),
     ("Can we introduce a design-doc process for major changes?", INCONCLUSIVE, None),
@@ -79,7 +107,9 @@ async def main(argv: list[str]) -> int:
     owner_right = owner_wrong = owner_empty_bad = 0
 
     for proposal, expected, exp_owner in CASES:
-        v = await check_decision(proposal, recall_fn=local_recall, thread_fn=local_thread)
+        v = await check_decision(
+            proposal, recall_fn=local_recall, thread_fn=local_thread
+        )
         got = v["verdict"]
 
         # sourceless invariant: a CONFLICTS/INCONCLUSIVE must carry clickable sources
@@ -120,7 +150,9 @@ async def main(argv: list[str]) -> int:
 
     lines = [f"{'':2}{'got':<13}{'expected':<13} proposal", "-" * 92]
     for ok, got, exp, p, go, eo in rows:
-        flag = "  " if ok else ("🔴" if (got == CONFLICTS and exp != CONFLICTS) else "🟡")
+        flag = (
+            "  " if ok else ("🔴" if (got == CONFLICTS and exp != CONFLICTS) else "🟡")
+        )
         lines.append(f"{flag}{got:<13}{exp:<13} {p[:44]}")
     lines += [
         "",

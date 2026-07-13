@@ -384,7 +384,10 @@ PRICING = (
     Thread(
         "product",
         "‹deja-arc:pricing-2›",
-        Msg("Diego Santos", "[Mar 20] Usage-based pricing verdict after the trial quarter."),
+        Msg(
+            "Diego Santos",
+            "[Mar 20] Usage-based pricing verdict after the trial quarter.",
+        ),
         (
             Msg(
                 "Diego Santos",

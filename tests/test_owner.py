@@ -26,7 +26,9 @@ def test_resolve_matches_display_name_else_empty(monkeypatch):
     owner._NAME_MAP = None
     assert asyncio.run(resolve_owner_id(c, "Maya Chen")) == "U1"
     owner._NAME_MAP = None
-    assert asyncio.run(resolve_owner_id(c, "Nobody Here")) == ""  # unresolved → button hidden
+    assert (
+        asyncio.run(resolve_owner_id(c, "Nobody Here")) == ""
+    )  # unresolved → button hidden
 
 
 def test_resolve_falls_back_for_demo(monkeypatch):

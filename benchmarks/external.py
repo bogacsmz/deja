@@ -46,9 +46,31 @@ CASES: list[Case] = [
         "JS pipeline operator (F# vs Hack)",
         "https://github.com/tc39/proposal-pipeline-operator",
         [
-            (1, "pipe champions", "tc39", "Proposal for the JavaScript pipeline operator |> using F#-style pipes: the right-hand side must be a unary function, value |> one |> two. Seeking Stage 2.", ["+1, F#-style pipes are clean and composable."]),
-            (2, "tc39", "tc39", "Pipeline operator update: F#-style pipes presented to TC39 for Stage 2 again after revisions.", ["TC39 did not advance F# pipes — memory performance and await concerns from engine implementors."]),
-            (3, "pipe champions", "tc39", "Pipeline operator — final direction after F# pipes failed to advance to Stage 2 twice.", ["Decision: we chose Hack-style pipes with the % placeholder, value |> one(%) |> two(%), instead of F# pipes. Switching back to F# would risk TC39 never agreeing to any pipes; the smart-mix proposal was withdrawn."]),
+            (
+                1,
+                "pipe champions",
+                "tc39",
+                "Proposal for the JavaScript pipeline operator |> using F#-style pipes: the right-hand side must be a unary function, value |> one |> two. Seeking Stage 2.",
+                ["+1, F#-style pipes are clean and composable."],
+            ),
+            (
+                2,
+                "tc39",
+                "tc39",
+                "Pipeline operator update: F#-style pipes presented to TC39 for Stage 2 again after revisions.",
+                [
+                    "TC39 did not advance F# pipes — memory performance and await concerns from engine implementors."
+                ],
+            ),
+            (
+                3,
+                "pipe champions",
+                "tc39",
+                "Pipeline operator — final direction after F# pipes failed to advance to Stage 2 twice.",
+                [
+                    "Decision: we chose Hack-style pipes with the % placeholder, value |> one(%) |> two(%), instead of F# pipes. Switching back to F# would risk TC39 never agreeing to any pipes; the smart-mix proposal was withdrawn."
+                ],
+            ),
         ],
         [("should the JavaScript pipeline operator use F#-style pipes?", ["hack"])],
     ),
@@ -56,29 +78,107 @@ CASES: list[Case] = [
         "Rust async/await syntax (prefix vs postfix)",
         "https://boats.gitlab.io/blog/post/await-decision/",
         [
-            (1, "withoutboats", "rust-lang", "RFC 2394 async/await: the await operator is written prefix, await future, mirroring the async keyword.", ["Prefix await reads naturally alongside async."]),
-            (2, "rust-lang", "rust-lang", "Async/await syntax debate: prefix await x vs postfix x.await vs an await!(x) macro vs space await.", ["Postfix chains better with the ? operator and method calls; a strong majority on the lang team prefers postfix."]),
-            (3, "rust lang team", "rust-lang", "Async/await final syntax decision: prefix await versus postfix .await, after months of debate.", ["Decision: the lang team went with postfix expression.await (dot-await syntax), not the prefix await syntax. It chains cleanly with ? and methods."]),
+            (
+                1,
+                "withoutboats",
+                "rust-lang",
+                "RFC 2394 async/await: the await operator is written prefix, await future, mirroring the async keyword.",
+                ["Prefix await reads naturally alongside async."],
+            ),
+            (
+                2,
+                "rust-lang",
+                "rust-lang",
+                "Async/await syntax debate: prefix await x vs postfix x.await vs an await!(x) macro vs space await.",
+                [
+                    "Postfix chains better with the ? operator and method calls; a strong majority on the lang team prefers postfix."
+                ],
+            ),
+            (
+                3,
+                "rust lang team",
+                "rust-lang",
+                "Async/await final syntax decision: prefix await versus postfix .await, after months of debate.",
+                [
+                    "Decision: the lang team went with postfix expression.await (dot-await syntax), not the prefix await syntax. It chains cleanly with ? and methods."
+                ],
+            ),
         ],
-        [("is await prefix or postfix syntax in Rust?", ["postfix", "dot-await", ".await"])],
+        [
+            (
+                "is await prefix or postfix syntax in Rust?",
+                ["postfix", "dot-await", ".await"],
+            )
+        ],
     ),
     Case(
         "Kubernetes dockershim removal",
         "https://kubernetes.io/blog/2022/01/07/kubernetes-is-moving-on-from-dockershim/",
         [
-            (1, "sig-node", "kubernetes", "Kubernetes 1.20 deprecates dockershim, the built-in Docker runtime integration. Plan to migrate to containerd or CRI-O.", ["Wait, does this break my Docker-built images?"]),
-            (2, "k8s team", "kubernetes", "Don't Panic: Kubernetes and Docker — coming back to clarify the dockershim deprecation after widespread community concern.", ["Your Docker-built images still run fine; only the internal dockershim component is going away."]),
-            (3, "k8s team", "kubernetes", "Dockershim removal in Kubernetes 1.24 — final decision after the deprecation and the clarification.", ["Decision: we removed dockershim in 1.24 as planned; the community re-litigated it but the call stands. Use containerd or CRI-O as the container runtime."]),
+            (
+                1,
+                "sig-node",
+                "kubernetes",
+                "Kubernetes 1.20 deprecates dockershim, the built-in Docker runtime integration. Plan to migrate to containerd or CRI-O.",
+                ["Wait, does this break my Docker-built images?"],
+            ),
+            (
+                2,
+                "k8s team",
+                "kubernetes",
+                "Don't Panic: Kubernetes and Docker — coming back to clarify the dockershim deprecation after widespread community concern.",
+                [
+                    "Your Docker-built images still run fine; only the internal dockershim component is going away."
+                ],
+            ),
+            (
+                3,
+                "k8s team",
+                "kubernetes",
+                "Dockershim removal in Kubernetes 1.24 — final decision after the deprecation and the clarification.",
+                [
+                    "Decision: we removed dockershim in 1.24 as planned; the community re-litigated it but the call stands. Use containerd or CRI-O as the container runtime."
+                ],
+            ),
         ],
-        [("are we removing dockershim from Kubernetes?", ["removed", "containerd", "cri-o"])],
+        [
+            (
+                "are we removing dockershim from Kubernetes?",
+                ["removed", "containerd", "cri-o"],
+            )
+        ],
     ),
     Case(
         "CPython removing the GIL (PEP 703)",
         "https://peps.python.org/pep-0703/",
         [
-            (1, "core devs", "python", "Proposals to remove the Global Interpreter Lock (GIL) from CPython — the Gilectomy and earlier attempts.", ["Removing the GIL has been shelved repeatedly; single-thread performance regressions killed past attempts."]),
-            (2, "Sam Gross", "python", "PEP 703: making the GIL optional with a --disable-gil build, using biased reference counting and per-object locking.", ["Promising, but the Steering Council needs to weigh the ecosystem risk."]),
-            (3, "Steering Council", "python", "PEP 703 Steering Council resolution on the free-threaded (no-GIL) CPython.", ["Decision: the Steering Council accepts PEP 703 with a gradual, phased rollout, and we can roll back the changes if they prove too disruptive. This reverses the long-standing refusal to make the GIL optional."]),
+            (
+                1,
+                "core devs",
+                "python",
+                "Proposals to remove the Global Interpreter Lock (GIL) from CPython — the Gilectomy and earlier attempts.",
+                [
+                    "Removing the GIL has been shelved repeatedly; single-thread performance regressions killed past attempts."
+                ],
+            ),
+            (
+                2,
+                "Sam Gross",
+                "python",
+                "PEP 703: making the GIL optional with a --disable-gil build, using biased reference counting and per-object locking.",
+                [
+                    "Promising, but the Steering Council needs to weigh the ecosystem risk."
+                ],
+            ),
+            (
+                3,
+                "Steering Council",
+                "python",
+                "PEP 703 Steering Council resolution on the free-threaded (no-GIL) CPython.",
+                [
+                    "Decision: the Steering Council accepts PEP 703 with a gradual, phased rollout, and we can roll back the changes if they prove too disruptive. This reverses the long-standing refusal to make the GIL optional."
+                ],
+            ),
         ],
         [("can we make the GIL optional in CPython?", ["accept", "703"])],
     ),
@@ -86,41 +186,153 @@ CASES: list[Case] = [
         "JS decorators design (static vs plain)",
         "https://github.com/tc39/proposal-decorators",
         [
-            (1, "decorators champions", "tc39", "JavaScript decorators: the legacy stage-1 design gives a decorator the class under construction and full property descriptors.", ["Babel and TypeScript already ship this legacy decorators design widely."]),
-            (2, "tc39", "tc39", "Static decorators redesign — a namespaced, statically analyzable decorators design.", ["We're abandoning the static decorators design; V8 showed it was too complex and not optimizable."]),
-            (3, "decorators champions", "tc39", "Decorators — new direction after the legacy and static designs were dropped.", ["Decision: we chose the simpler 2022 design where decorators are plain functions that replace a value with a matching one, with no property descriptors. This dropped the earlier Stage 2 design."]),
+            (
+                1,
+                "decorators champions",
+                "tc39",
+                "JavaScript decorators: the legacy stage-1 design gives a decorator the class under construction and full property descriptors.",
+                [
+                    "Babel and TypeScript already ship this legacy decorators design widely."
+                ],
+            ),
+            (
+                2,
+                "tc39",
+                "tc39",
+                "Static decorators redesign — a namespaced, statically analyzable decorators design.",
+                [
+                    "We're abandoning the static decorators design; V8 showed it was too complex and not optimizable."
+                ],
+            ),
+            (
+                3,
+                "decorators champions",
+                "tc39",
+                "Decorators — new direction after the legacy and static designs were dropped.",
+                [
+                    "Decision: we chose the simpler 2022 design where decorators are plain functions that replace a value with a matching one, with no property descriptors. This dropped the earlier Stage 2 design."
+                ],
+            ),
         ],
-        [("should JavaScript decorators use the static decorators design?", ["plain", "simpler", "2022"])],
+        [
+            (
+                "should JavaScript decorators use the static decorators design?",
+                ["plain", "simpler", "2022"],
+            )
+        ],
     ),
     Case(
         "Vue function-based vs Composition API",
         "https://github.com/vuejs/rfcs/pull/78",
         [
-            (1, "Evan You", "vuejs", "Function-based Component API RFC 42: expose reactive state through a setup() function instead of the Options API.", ["Strong backlash — this feels like it abandons the approachable Options API."]),
-            (2, "vue community", "vuejs", "Community feedback on the Function-based Component API — thousands of comments, coming back with heavy pushback.", ["Don't force this on everyone; please keep the Options API."]),
-            (3, "Evan You", "vuejs", "Composition API RFC 78 — revised direction after the function-based API feedback.", ["Decision: we went with an additive Composition API (renamed from function-based), alongside the Options API, which stays. value became ref and state became reactive."]),
+            (
+                1,
+                "Evan You",
+                "vuejs",
+                "Function-based Component API RFC 42: expose reactive state through a setup() function instead of the Options API.",
+                [
+                    "Strong backlash — this feels like it abandons the approachable Options API."
+                ],
+            ),
+            (
+                2,
+                "vue community",
+                "vuejs",
+                "Community feedback on the Function-based Component API — thousands of comments, coming back with heavy pushback.",
+                ["Don't force this on everyone; please keep the Options API."],
+            ),
+            (
+                3,
+                "Evan You",
+                "vuejs",
+                "Composition API RFC 78 — revised direction after the function-based API feedback.",
+                [
+                    "Decision: we went with an additive Composition API (renamed from function-based), alongside the Options API, which stays. value became ref and state became reactive."
+                ],
+            ),
         ],
-        [("is the function-based component API replacing the Options API in Vue?", ["additive", "composition"])],
+        [
+            (
+                "is the function-based component API replacing the Options API in Vue?",
+                ["additive", "composition"],
+            )
+        ],
     ),
     Case(
         "TypeScript legacy vs standard decorators",
         "https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/",
         [
-            (1, "TS team", "typescript", "TypeScript ships experimental decorators behind --experimentalDecorators, modeling an older TC39 decorators proposal.", ["Angular and NestJS rely heavily on these legacy experimental decorators."]),
-            (2, "TS team", "typescript", "TC39 decorators reached Stage 3 with different semantics from the TypeScript experimental design.", ["Should TypeScript align with the standard? The emit and type-checking rules differ."]),
-            (3, "TS team", "typescript", "TypeScript 5.0 decorators — final call on the standard versus the experimental design.", ["Decision: TypeScript 5.0 went with the TC39 standard decorators by default; --experimentalDecorators is kept for the legacy behavior. Existing decorators may need updates."]),
+            (
+                1,
+                "TS team",
+                "typescript",
+                "TypeScript ships experimental decorators behind --experimentalDecorators, modeling an older TC39 decorators proposal.",
+                [
+                    "Angular and NestJS rely heavily on these legacy experimental decorators."
+                ],
+            ),
+            (
+                2,
+                "TS team",
+                "typescript",
+                "TC39 decorators reached Stage 3 with different semantics from the TypeScript experimental design.",
+                [
+                    "Should TypeScript align with the standard? The emit and type-checking rules differ."
+                ],
+            ),
+            (
+                3,
+                "TS team",
+                "typescript",
+                "TypeScript 5.0 decorators — final call on the standard versus the experimental design.",
+                [
+                    "Decision: TypeScript 5.0 went with the TC39 standard decorators by default; --experimentalDecorators is kept for the legacy behavior. Existing decorators may need updates."
+                ],
+            ),
         ],
-        [("should we keep using experimental legacy decorators in TypeScript?", ["standard", "tc39"])],
+        [
+            (
+                "should we keep using experimental legacy decorators in TypeScript?",
+                ["standard", "tc39"],
+            )
+        ],
     ),
     Case(
         "SharedArrayBuffer after Spectre",
         "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer",
         [
-            (1, "browser vendors", "whatwg", "SharedArrayBuffer shipped enabled by default, giving JavaScript shared memory across workers with Atomics.", ["Great for multithreaded WebAssembly."]),
-            (2, "browser vendors", "whatwg", "Spectre mitigation for SharedArrayBuffer and high-resolution timers.", ["Decision: we're dropping SharedArrayBuffer by default across browsers because Spectre timing attacks make shared memory unsafe."]),
-            (3, "browser vendors", "whatwg", "Re-enabling SharedArrayBuffer after Spectre — coming back to shared memory with a secure design.", ["Decision: we went with re-enabling SharedArrayBuffer only under cross-origin isolation, gated by the COOP and COEP headers. It is available by default again only in cross-origin isolated contexts."]),
+            (
+                1,
+                "browser vendors",
+                "whatwg",
+                "SharedArrayBuffer shipped enabled by default, giving JavaScript shared memory across workers with Atomics.",
+                ["Great for multithreaded WebAssembly."],
+            ),
+            (
+                2,
+                "browser vendors",
+                "whatwg",
+                "Spectre mitigation for SharedArrayBuffer and high-resolution timers.",
+                [
+                    "Decision: we're dropping SharedArrayBuffer by default across browsers because Spectre timing attacks make shared memory unsafe."
+                ],
+            ),
+            (
+                3,
+                "browser vendors",
+                "whatwg",
+                "Re-enabling SharedArrayBuffer after Spectre — coming back to shared memory with a secure design.",
+                [
+                    "Decision: we went with re-enabling SharedArrayBuffer only under cross-origin isolation, gated by the COOP and COEP headers. It is available by default again only in cross-origin isolated contexts."
+                ],
+            ),
         ],
-        [("can we use SharedArrayBuffer enabled by default?", ["cross-origin", "isolation", "coop", "coep", "isolated"])],
+        [
+            (
+                "can we use SharedArrayBuffer enabled by default?",
+                ["cross-origin", "isolation", "coop", "coep", "isolated"],
+            )
+        ],
     ),
 ]
 
@@ -177,7 +389,9 @@ def _content(text: str) -> set[str]:
     return {w for w in _WORD.findall((text or "").lower())} - _STOP
 
 
-def external_recall(query, *, token=None, limit=5, channel_types=None, exclude_ts=None) -> list[Hit]:
+def external_recall(
+    query, *, token=None, limit=5, channel_types=None, exclude_ts=None
+) -> list[Hit]:
     """Same selective RTS mirror as local.local_recall — salient in-corpus term required, IDF floor."""
     qwords = _content(query)
     in_corpus = [w for w in qwords if _DF.get(w, 0) > 0]
@@ -228,7 +442,9 @@ async def _standing(sentence: str) -> str | None:
     q = await _judge_query(sentence)
     if not q:
         return None
-    arc = await recall_arc(q, recall_fn=external_recall, thread_fn=external_thread, expand=False)
+    arc = await recall_arc(
+        q, recall_fn=external_recall, thread_fn=external_thread, expand=False
+    )
     if arc is None or arc.inconclusive:
         return None
     return arc.standing_decision.lower()

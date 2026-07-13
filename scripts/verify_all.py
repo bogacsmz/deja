@@ -169,7 +169,9 @@ def check_foundations() -> None:
         from seed_data import is_decision
 
         markers = [t.marker for t in ALL_THREADS]
-        inconclusive = {"RFC / design-doc process"}  # the one arc that is decision-free by design
+        inconclusive = {
+            "RFC / design-doc process"
+        }  # the one arc that is decision-free by design
         problems = []
         if len(markers) != len(set(markers)):
             problems.append("duplicate markers")

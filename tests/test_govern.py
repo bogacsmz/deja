@@ -62,11 +62,16 @@ def test_allow_when_nothing_on_record(monkeypatch):
 
 def test_conflict_split_kept_vs_rejected():
     # re-proposing the rejected subject conflicts; restating the kept one does not
-    assert _conflicts("migrate to Temporal", "rolling back the Temporal migration, staying on Redis")
-    assert not _conflicts(
-        "add a usage add-on", "reverted usage-based, back to seat-based with a usage add-on"
+    assert _conflicts(
+        "migrate to Temporal", "rolling back the Temporal migration, staying on Redis"
     )
-    assert not _conflicts("migrate to Temporal", "we're going with continuous deploy")  # no rejection
+    assert not _conflicts(
+        "add a usage add-on",
+        "reverted usage-based, back to seat-based with a usage add-on",
+    )
+    assert not _conflicts(
+        "migrate to Temporal", "we're going with continuous deploy"
+    )  # no rejection
 
 
 def _agent_card(proposal, query, monkeypatch):
@@ -78,7 +83,11 @@ def _agent_card(proposal, query, monkeypatch):
     monkeypatch.setattr(respond, "judge", _judge)
     return asyncio.run(
         respond.recall_card(
-            proposal, None, is_agent=True, recall_fn=local_recall, thread_fn=local_thread
+            proposal,
+            None,
+            is_agent=True,
+            recall_fn=local_recall,
+            thread_fn=local_thread,
         )
     )
 
@@ -148,9 +157,13 @@ def test_mode_b_non_proposal_stays_silent(monkeypatch):
 
 def test_conflict_edge_cases_from_review():
     # bare "kept" past tense must also mark the kept clause (was a false CONFLICTS)
-    assert not _conflicts("add a usage add-on", "reverted usage-based, kept a usage add-on")
+    assert not _conflicts(
+        "add a usage add-on", "reverted usage-based, kept a usage add-on"
+    )
     # 'stepped away' is a reversal the arc recognizes — the conflict gate must too (was a false ALLOW)
-    assert _conflicts("let's adopt Kubernetes again", "we stepped away from Kubernetes for now")
+    assert _conflicts(
+        "let's adopt Kubernetes again", "we stepped away from Kubernetes for now"
+    )
     # a rejected alternative named AFTER the keep cue must not be misfiled as kept (was a false ALLOW)
     assert _conflicts(
         "let's migrate to CockroachDB",

@@ -206,7 +206,10 @@ def build_arc_card(
     else:
         header = "⏳ Déjà vu — you've been here before"
     blocks: list[dict] = [
-        {"type": "header", "text": {"type": "plain_text", "text": header, "emoji": True}}
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": header, "emoji": True},
+        }
     ]
 
     if warning:

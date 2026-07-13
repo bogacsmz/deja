@@ -61,7 +61,7 @@ def _conflicts(proposal: str, standing_decision: str) -> bool:
     if not any(r in sd for r in _REJECTION_ALL):
         return False  # the decision doesn't reject anything → a proposal can't contradict it
     kept_at = [sd.rfind(c) + len(c) for c in _KEEP_CUES if c in sd]
-    kept = sd[max(kept_at):] if kept_at else ""
+    kept = sd[max(kept_at) :] if kept_at else ""
     if kept:
         boundary = _CLAUSE_END.search(kept)
         if boundary:
@@ -126,13 +126,20 @@ async def check_decision(
     # re-open it; a brake that fires on chit-chat is the most expensive error we can make.
     decision = await judge(proposal)
     if not decision.should_recall or not decision.query:
-        return _verdict(ALLOW, rationale="Not a decision or proposal — nothing to govern.")
+        return _verdict(
+            ALLOW, rationale="Not a decision or proposal — nothing to govern."
+        )
     query = decision.query
 
-    arc = await recall_arc(query, recall_fn=recall_fn, thread_fn=thread_fn, expand=expand)
+    arc = await recall_arc(
+        query, recall_fn=recall_fn, thread_fn=thread_fn, expand=expand
+    )
 
     if arc is None:
-        return _verdict(ALLOW, rationale="No prior decision found on this topic — nothing to conflict with.")
+        return _verdict(
+            ALLOW,
+            rationale="No prior decision found on this topic — nothing to conflict with.",
+        )
 
     if arc.inconclusive:
         return _verdict(
@@ -156,7 +163,9 @@ async def check_decision(
         sources=arc.sources,
     )
     if _conflicts(proposal, arc.standing_decision):
-        if not arc.sources:  # sourceless verdict = 0: a conflict we can't link is only INCONCLUSIVE
+        if (
+            not arc.sources
+        ):  # sourceless verdict = 0: a conflict we can't link is only INCONCLUSIVE
             return _verdict(
                 INCONCLUSIVE,
                 standing_decision=arc.standing_decision,

@@ -54,7 +54,9 @@ _DEJA_FINGERPRINTS = ("déjà", "your team already discussed", "powered by legib
 # handle as plain text — which is both how RTS renders a mention in its snippet AND how the
 # onboarding "Try these" examples read when a user copies them into a channel.
 _BOT_UID = os.environ.get("DEJA_BOT_USER_ID", "")
-_DEJA_HANDLE = re.compile(r"@\s*d[eé]j[aà]", re.IGNORECASE)  # @deja / @Déjà, not a real <@UID>
+_DEJA_HANDLE = re.compile(
+    r"@\s*d[eé]j[aà]", re.IGNORECASE
+)  # @deja / @Déjà, not a real <@UID>
 
 
 def _is_deja_card(snippet: str) -> bool:
@@ -66,7 +68,9 @@ def _addressed_to_deja(snippet: str) -> bool:
     s = snippet or ""
     if _BOT_UID and f"<@{_BOT_UID}>" in s:
         return True
-    return bool(_DEJA_HANDLE.search(s))  # literal "@Deja …" text (RTS render / copied example)
+    return bool(
+        _DEJA_HANDLE.search(s)
+    )  # literal "@Deja …" text (RTS render / copied example)
 
 
 def _resolve_token(explicit: str | None) -> str:

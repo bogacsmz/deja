@@ -89,7 +89,9 @@ async def main() -> int:
 
     total = judge_ms + arc_ms + card_ms
     print("-" * 60)
-    print(f"  TOTAL (serverside)     {total:8.0f} ms   (+ status-msg sleeps + Slack round-trips)")
+    print(
+        f"  TOTAL (serverside)     {total:8.0f} ms   (+ status-msg sleeps + Slack round-trips)"
+    )
     return 0
 
 

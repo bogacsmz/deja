@@ -64,19 +64,34 @@ A_CARD = {"blocks": [{"type": "section"}], "text": "Déjà — standing decision
 
 def test_never_reacts_to_own_message(monkeypatch):
     say = _Say()
-    _drive(_event("Opening a PR to migrate to Temporal", bot_id="B_DEJA"), say, monkeypatch, card=A_CARD)
+    _drive(
+        _event("Opening a PR to migrate to Temporal", bot_id="B_DEJA"),
+        say,
+        monkeypatch,
+        card=A_CARD,
+    )
     assert say.calls == []  # our own bot_id → skipped before any work
 
 
 def test_never_reacts_to_own_card_fingerprint(monkeypatch):
     say = _Say()
-    _drive(_event("⏳ Déjà vu — your team already decided this"), say, monkeypatch, card=A_CARD)
+    _drive(
+        _event("⏳ Déjà vu — your team already decided this"),
+        say,
+        monkeypatch,
+        card=A_CARD,
+    )
     assert say.calls == []
 
 
 def test_skips_message_addressed_to_deja(monkeypatch):
     say = _Say()
-    _drive(_event("<@U_DEJA> should we migrate to Temporal?"), say, monkeypatch, card=A_CARD)
+    _drive(
+        _event("<@U_DEJA> should we migrate to Temporal?"),
+        say,
+        monkeypatch,
+        card=A_CARD,
+    )
     assert say.calls == []  # @mention → app_mentioned handles it, not ambient
 
 
@@ -92,13 +107,25 @@ def test_never_brakes_slackbot(monkeypatch):
 
 def test_agent_message_classified_by_bot_id(monkeypatch):
     say = _Say()
-    rc = _drive(_event("Opening a PR to migrate to Temporal", bot_id="B_OTHER"), say, monkeypatch, card=A_CARD)
-    assert rc.is_agent is True and len(say.calls) == 1  # a real agent → Mode B, posts once
+    rc = _drive(
+        _event("Opening a PR to migrate to Temporal", bot_id="B_OTHER"),
+        say,
+        monkeypatch,
+        card=A_CARD,
+    )
+    assert (
+        rc.is_agent is True and len(say.calls) == 1
+    )  # a real agent → Mode B, posts once
 
 
 def test_human_message_is_not_agent(monkeypatch):
     say = _Say()
-    rc = _drive(_event("should we migrate the job queue to Temporal?"), say, monkeypatch, card=A_CARD)
+    rc = _drive(
+        _event("should we migrate the job queue to Temporal?"),
+        say,
+        monkeypatch,
+        card=A_CARD,
+    )
     assert rc.is_agent is False
 
 
