@@ -69,7 +69,7 @@ async def main() -> int:
     print("card posted OK ✓  (Slack accepted the Block Kit)")
     print("  block types:", [b["type"] for b in card["blocks"]])
     print("  has 'what happened next':", "What happened next" in blob)
-    print("  has privacy line:", "channels you can access" in blob)
+    print("  has privacy line:", "channels this app can access" in blob)
     print("  card permalink:", link)
     return 0
 

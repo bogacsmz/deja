@@ -28,7 +28,10 @@ TEXT = (
     "• `@Déjà should we switch to continuous deploy?`\n"
     "• `@Déjà should we adopt an RFC / design-doc process?`  _(I'll say INCONCLUSIVE — no fake decision)_\n"
     "• `@Déjà let's migrate to Temporal for the new pipeline`  _(watch the contradiction warning)_\n"
-    ":lock: I only search channels you can already access."
+    # Scope is the INSTALLING account's token, not the reader's — saying "channels you can access"
+    # would promise per-caller permission scoping we do not ship. docs/SUBMISSION.md commits to this
+    # wording; the card footer and App Home say the same thing.
+    ":lock: I only search channels this app can access."
 )
 
 

@@ -139,4 +139,4 @@ in `run.py` keeps the selective mirror — that one measures recall, not worst-c
   or staying in beta?', 'when's the public launch?') still resolve.
 
 Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the permissive mirror.
-Run: `python benchmarks/adversarial.py --md`.
+Run: `python -m benchmarks.adversarial --md`.

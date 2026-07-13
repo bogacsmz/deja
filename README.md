@@ -36,11 +36,14 @@ subscription** — no paid API key. · powered by Legibright
   ```
   a phase-by-phase ✅ table. Then the numbers below, reproducibly:
   ```bash
-  python benchmarks/run.py          # arc vs single-hit (held-out 4/6·3/5·0/4)
-  python benchmarks/adversarial.py  # 83 hostile queries → 0 confident-wrong, recall 96%
-  python benchmarks/governance.py   # 27 proposals → false-CONFLICTS 0, sourceless 0
+  python -m benchmarks.run          # arc vs single-hit (held-out 4/6·3/5·0/4)
+  python -m benchmarks.adversarial  # 83 hostile queries → 0 confident-wrong, recall 96%
+  python -m benchmarks.governance   # 27 proposals → false-CONFLICTS 0, sourceless 0
+  python -m benchmarks.external     # 8 real OSS decision histories → 6/8, and 1 honest miss
   ```
-  (The LLM judge is cached in `benchmarks/.judge_cache.json`, committed — so these run with **no API key**.)
+  The LLM judge's outputs are cached in `benchmarks/.judge_cache.json` (committed), so each of these
+  runs **offline, with no API key, in under a second — and is byte-for-byte deterministic**: the
+  numbers above are the numbers you get. `docs/*.md` are regenerated from these runs (`--md`).
 
 ## Quick start
 ```bash
@@ -83,7 +86,7 @@ unrelated decision **1/4** times. **Déjà → 4/6 recurring · 3/5 single, neve
 > verified to match. Held-out recurring is **4/6, not higher**, because the live card path is
 > lexical-only (no LLM in the hot path): the semantic-gap cases ('observability stack' → the *Datadog*
 > decision) need the LLM expansion, which is available but off live for speed. Honest cost, not a
-> hidden failure. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · `python benchmarks/run.py --md`.
+> hidden failure. Method + limits: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · `python -m benchmarks.run --md`.
 
 ## Robustness — silence is cheap, a confident wrong answer is fatal
 

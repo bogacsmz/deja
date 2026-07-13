@@ -83,7 +83,7 @@ python scripts/verify_all.py      # the cross-phase gate (see below)
 | 6 · Decision arc | Timeline + standing decision + owner + INCONCLUSIVE + save→Canvas | `arc synthesis`, `conflict/staleness`, `arc card`, `decision store` (hermetic) |
 | v2 · Governance | `check_decision` verdict + ambient watch + loop-safety + Planner-Bot trial | `govern verdict`, `ambient loop-safety`, `governance benchmark` |
 
-Plus `pytest` (hermetic unit + integration, 96 tests) and `python scripts/verify_all.py --no-live` —
+Plus `pytest` (hermetic unit + integration, 123 tests) and `python scripts/verify_all.py --no-live` —
 see [`../README.md`](../README.md).
 
 ## Benchmark — the arc beats single-hit search
@@ -109,7 +109,7 @@ never invents one (0/4).** On the development set Déjà reaches **6/6** recurri
 > is **4/6, not higher**, because the live card path is **lexical-only** (no LLM in the hot path, light
 > on the rate-limited RTS) — the semantic-gap cases ('observability stack' → the *Datadog* decision)
 > need the LLM expansion, which is available but off on the live card. An honest cost, stated plainly.
-> Full method + limits in [`BENCHMARK.md`](BENCHMARK.md); one command: `python benchmarks/run.py --md`.
+> Full method + limits in [`BENCHMARK.md`](BENCHMARK.md); one command: `python -m benchmarks.run --md`.
 
 ## Robustness — the number we lead with
 
