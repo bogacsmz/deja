@@ -83,8 +83,8 @@ python scripts/verify_all.py      # the cross-phase gate (see below)
 | 6 · Decision arc | Timeline + standing decision + owner + INCONCLUSIVE + save→Canvas | `arc synthesis`, `conflict/staleness`, `arc card`, `decision store` (hermetic) |
 | v2 · Governance | `check_decision` verdict + ambient watch + loop-safety + Planner-Bot trial | `govern verdict`, `ambient loop-safety`, `governance benchmark` |
 
-Plus `pytest` (hermetic unit + integration) — see [`../README.md`](../README.md) and
-[`PHASE-REVIEW.md`](PHASE-REVIEW.md).
+Plus `pytest` (hermetic unit + integration, 96 tests) and `python scripts/verify_all.py --no-live` —
+see [`../README.md`](../README.md).
 
 ## Benchmark — the arc beats single-hit search
 

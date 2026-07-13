@@ -7,7 +7,8 @@ forged requests are rejected 401, fail-closed). Retrieval runs on the single INS
 (`SLACK_USER_TOKEN`), so it is scoped to the channels the installing account can access — NOT to the
 calling user. Per-caller scoping would need per-user OAuth (documented, not shipped).
 
-Run (expose with ngrok; point the manifest `mcp_servers` url at `<ngrok>/mcp`):
+Run (production: Railway, bound to $PORT, via railway_start.py; local: expose :3000 over any HTTPS
+tunnel and point the manifest `mcp_servers` url at `<tunnel>/mcp`. See docs/DEPLOY.md):
     SLACK_SIGNING_SECRET=… python -m deja.mcp_http
 """
 

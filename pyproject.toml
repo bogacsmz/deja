@@ -18,7 +18,6 @@ test = [
     "pytest-asyncio==1.4.0",
 ]
 dev = [
-    "bolt-python-support-agent-claude[test]",
     "ruff==0.15.20",
 ]
 

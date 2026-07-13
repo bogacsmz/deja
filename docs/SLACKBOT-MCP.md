@@ -1,67 +1,56 @@
-# Slackbot MCP Client → Déjà (Phase 5b)
+# Slackbot calls Déjà — agent-to-agent governance, inside Slack
 
-Let **Slackbot** itself call Déjà's `recall_memory` — agent-to-agent, inside Slack. This kills the
-"isn't this just Slackbot?" objection on camera and uses Slack's newest capability (Slackbot MCP
-Client, still rolling out).
+Déjà's headline proof: **Slackbot itself** — Slack's own built-in AI — calls Déjà's MCP tools to
+answer *"what did we decide?"* and *"does this conflict with a standing decision?"*. One agent asking
+another, live, with sourced answers. It retires the "isn't this just Slackbot?" objection by making
+Slackbot the **client** of Déjà's governance, and it demonstrates the thesis literally: *any* agent in
+Slack — including Slack's own — can adopt `check_decision` in five lines.
 
-**What's built (code, locally verified):** `deja/mcp_http.py` — a **separate HTTP process** (the
-socket-mode agent is untouched) serving the same `recall_memory` tool over streamable-HTTP at `/mcp`,
-behind Slack request-signature verification, classified **read-only**, reading the caller's identity
-from `_meta.slack` (`slack_identity_auth`). Verified hermetically in `tests/test_mcp_http.py`
-(signature gate + read-only annotation).
+## What's live
 
-**What's NOT done (human-loop — needs you):** ngrok, the signing secret, the manifest reinstall, and
-the actual Slackbot connect + call. Code can't do these. Runbook below.
+`deja/mcp_http.py` serves **two** MCP tools over streamable-HTTP at `/mcp`, running on Railway
+(`https://deja-production.up.railway.app/mcp`) in the same service as the Socket-Mode agent
+(`railway_start.py`):
 
-## Runbook (bogac)
+| Tool | Slackbot asks | Returns |
+|---|---|---|
+| `recall_memory` | "what did we decide about X?" | the standing decision + sources |
+| `check_decision` | "does *\<proposal\>* conflict with a standing decision?" | `ALLOW / CONFLICTS / INCONCLUSIVE`, always sourced |
 
-1. **ngrok** — install + authtoken (one-time):
-   ```bash
-   brew install ngrok && ngrok config add-authtoken <YOUR_TOKEN>   # token from ngrok.com dashboard
-   ```
-2. **Signing secret** — App Settings → **Basic Information → Signing Secret**; add to `.env`:
-   ```
-   SLACK_SIGNING_SECRET=…
-   ```
-3. **Run the endpoint** (separate terminal; leave `slack run` running too):
-   ```bash
-   python -m deja.mcp_http          # serves :3000 (/mcp, /healthz); reads .env
-   curl -s localhost:3000/healthz   # -> {"ok": true}
-   ```
-4. **Expose it** (separate terminal; keep open — if the tunnel dies, the endpoint dies):
-   ```bash
-   ngrok http 3000                  # copy the https URL, e.g. https://abc123.ngrok-free.app
-   ```
-5. **Manifest** — add to the Déjà app manifest, set the url to `<ngrok>/mcp`, then **reinstall**
-   (this keeps socket-mode + the ambient agent intact — the additions are additive):
-   ```jsonc
-   // oauth_config.scopes.bot += these:
-   "mcp:connect", "users:read.email"        // (users:read is already present)
-   // oauth_config.redirect_urls += :
-   "https://<ngrok>.ngrok-free.app/slack/oauth_redirect"
-   // top-level, new block:
-   "mcp_servers": {
-     "Déjà": { "url": "https://<ngrok>.ngrok-free.app/mcp", "auth_type": "slack_identity_auth" }
-   }
-   ```
-6. **Connect in Slackbot:** DM **Slackbot** → **Apps** button → **+** next to **Déjà**.
-7. **Discovery test:** ask Slackbot *"What tools are available from Déjà?"* → `recall_memory` listed. 📸
-8. **Call test (the money beat):** ask Slackbot *"What did we decide about migrating the job queue to
-   Temporal?"* → it calls `recall_memory` (**Allow once**) → returns the rollback memory + permalink. 📸
+Every request is **Slack-signature verified and fail-closed**: an unsigned or forged `POST /mcp` gets
+`401` before it reaches a tool (`SlackSignatureMiddleware`, `slack_identity_auth`). Both tools are
+annotated **read-only**. Retrieval runs on the installer's user token (permission-scoped to that
+account, not per-caller — see the README's Honest limits). Covered hermetically in
+`tests/test_mcp_http.py`.
 
-## Gate 5b
-- ✅ Slackbot discovers the tool · ✅ Slackbot calls it and returns Déjà's memory → **screenshots**.
-- ✅ Ambient side (channel card / auto-trigger) still works — it's a separate process, untouched.
+## Verified live (the money beat)
 
-## Open questions to confirm live (report back)
-- **OAuth vs. no-OAuth:** this endpoint verifies the Slack signature and uses the workspace RTS token
-  (`SLACK_USER_TOKEN`) — it does **not** implement the OAuth install routes the slack-samples example
-  has (that example needed per-team bot tokens; we don't). Per the docs, `slack_identity_auth` needs
-  no separate *user* OAuth. **If Slackbot rejects the connection asking for OAuth**, tell me — I'll add
-  the `/slack/install` + `/slack/oauth_redirect` routes + installation store (the sample pattern).
-- **Rollout:** the feature is "still rolling out." If Déjà doesn't appear under Slackbot → Apps, the
-  sandbox may not have it enabled yet.
+Asked in Slack, Slackbot invoked Déjà's tools and relayed the sourced answers verbatim:
 
-## If blocked
-Per the plan: **stop and report the reason** (rollout / sandbox / auth). No loss — the ambient agent
-(channel cards) and the Cursor/stdio MCP arm (`scripts/mcp_smoke.py`) already prove the tech.
+- **`recall_memory`** — *"what did we decide about our observability stack?"* → Slackbot returned the
+  datastore decision on record (Postgres over Mongo, ADR-014) with its source, and honestly noted that
+  no *observability* decision is recorded — it didn't invent one.
+- **`check_decision`** — *"does migrating the job queue to Temporal conflict with a standing
+  decision?"* → **Verdict: CONFLICTS** — the team rolled this back (Maya Chen, Apr 23), discussed 8×,
+  backed by 8 sources, with the honest "loop in Maya to formally revisit."
+
+Railway logs confirm both calls landed on the deployed endpoint and returned `200`.
+
+## Connect Slackbot to Déjà (reproduce it)
+
+1. The endpoint is already live on Railway; the app manifest's `mcp_servers` block points at
+   `https://deja-production.up.railway.app/mcp` (`auth_type: slack_identity_auth`).
+2. In Slack: DM **Slackbot** → **Apps** → **+** next to **Déjà** to connect.
+3. Ask Slackbot, e.g. *"use check_decision: does migrating the job queue to Temporal conflict with a
+   standing decision?"* → it calls Déjà and relays the sourced `CONFLICTS` verdict.
+
+Local dev without Railway: `python -m deja.mcp_http` serves `:3000` (`/mcp`, `/healthz`); expose it
+over any HTTPS tunnel and point the manifest `mcp_servers` url at `<tunnel>/mcp`. See
+[`DEPLOY.md`](DEPLOY.md).
+
+## Why it matters
+
+The ambient agent watches the channel; this is the **collaborative** half — an agent (here, Slackbot)
+*asks Déjà before it acts*. Same engine, same **sourceless-verdict = 0** guarantee, exposed as an
+interface contract any agent can call. Slack's own AI adopting it is the strongest possible proof that
+"any agent in Slack can adopt this" is real, not a slogan.

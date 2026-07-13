@@ -65,7 +65,7 @@ python scripts/verify_all.py   # the cross-phase gate — one green table (below
 **One command proves it all:** `python scripts/verify_all.py` → a phase-by-phase ✅ table
 (`--no-live` for the hermetic subset in CI). See [`docs/architecture.md`](docs/architecture.md) ·
 [`docs/SUBMISSION.md`](docs/SUBMISSION.md) · [`docs/DEMO.md`](docs/DEMO.md) ·
-[`docs/PHASE-REVIEW.md`](docs/PHASE-REVIEW.md) · [`docs/HARDENING.md`](docs/HARDENING.md).
+[`docs/SLACKBOT-MCP.md`](docs/SLACKBOT-MCP.md) · [`docs/HARDENING.md`](docs/HARDENING.md).
 
 ## Does the arc beat search? (benchmark)
 
