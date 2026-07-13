@@ -427,7 +427,12 @@ def _canonical(query: str) -> DecisionArc | None:
                 standing_decision=ev.summary,
                 owner=ev.author,
                 decided_at=ev.date,
-                times_discussed=d.get("times_discussed", 1),
+                # Honesty invariant: the count must never exceed what we can link. The canonical
+                # path returns ONE sourced thread (the saved decision), so times_discussed is 1 — the
+                # card renders a clickable row per timeline event, and "discussed N×" must equal the
+                # number of those rows. The store's aggregate re-litigation count lives on App Home,
+                # where it belongs; it is not a per-thread source claim here.
+                times_discussed=1,
                 sources=(ev.permalink,),
                 confidence="high",
             )
