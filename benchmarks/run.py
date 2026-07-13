@@ -11,22 +11,35 @@ against a hand-labelled expected answer, over three case kinds:
   * single (one-off decisions) — both should get these; a control showing the arc doesn't regress.
   * negative (noise / never-discussed) — neither should claim a decision. Measures false decisions.
 
-Honest by construction: same recall primitive under both, only the synthesis differs. Requires
-SLACK_USER_TOKEN + the seeded workspace (scripts/seed_arcs.py + scripts/seed_deja.py), RTS indexed.
+Honest by construction: same recall primitive under both, only the synthesis differs.
 
-    python benchmarks/run.py            # run + print
-    python benchmarks/run.py --md       # also write docs/BENCHMARK.md
+Runs OFFLINE and deterministically: retrieval is the local mirror of the seeded workspace
+(benchmarks/local.py — the seed content lives in scripts/seed_arcs.py + scripts/seed_deja.py, no RTS
+call and no Slack token), and the LLM judge is served from the committed benchmarks/.judge_cache.json.
+No API key needed. Delete the cache to re-measure the judge against a live model.
+
+    python -m benchmarks.run            # run + print
+    python -m benchmarks.run --md       # also write docs/BENCHMARK.md
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 import sys
 
 from dotenv import load_dotenv
 
 load_dotenv(".env", override=False)
+
+# Reproducibility: the judge (LLM) and query-expansion outputs are cached on disk and COMMITTED, so
+# the benchmark is deterministic AND runs without a Claude token. `deja.trigger` / `deja.expand` read
+# these paths at IMPORT time, so they must be set before the deja imports below. Delete the cache
+# files to re-measure the judge from scratch.
+_CACHES = pathlib.Path(__file__).parent
+os.environ.setdefault("DEJA_JUDGE_CACHE", str(_CACHES / ".judge_cache.json"))
+os.environ.setdefault("DEJA_EXPAND_CACHE", str(_CACHES / ".expand_cache.json"))
 
 from benchmarks.local import local_recall, local_thread  # noqa: E402
 from deja.arc import recall_arc  # noqa: E402

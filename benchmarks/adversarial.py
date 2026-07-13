@@ -13,20 +13,27 @@ Principle: silence is cheap, a confident wrong answer is fatal. **The number tha
 CONFIDENT-WRONG — the target is 0.** Reproducible via the judge cache + local mirror (calibrated to
 live); writes docs/ROBUSTNESS.md.
 
-    python benchmarks/adversarial.py            # run + print
-    python benchmarks/adversarial.py --md       # also write docs/ROBUSTNESS.md
+    python -m benchmarks.adversarial            # run + print
+    python -m benchmarks.adversarial --md       # also write docs/ROBUSTNESS.md
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 import sys
 from collections import Counter
 
 from dotenv import load_dotenv
 
 load_dotenv(".env", override=False)
+
+# Reproducibility: point the judge/expand caches at the committed files BEFORE any deja import (they
+# are read at import time). Deterministic, and runs without a Claude token. See benchmarks/run.py.
+_CACHES = pathlib.Path(__file__).parent
+os.environ.setdefault("DEJA_JUDGE_CACHE", str(_CACHES / ".judge_cache.json"))
+os.environ.setdefault("DEJA_EXPAND_CACHE", str(_CACHES / ".expand_cache.json"))
 
 from benchmarks.local import local_thread, loose_recall  # noqa: E402
 from benchmarks.run import _judge_query  # noqa: E402
@@ -267,7 +274,7 @@ async def main(argv: list[str]) -> int:
             "  or staying in beta?', 'when's the public launch?') still resolve.",
             "",
             "Reproducible: judge outputs are cached (DEJA_JUDGE_CACHE); retrieval is the permissive mirror.",
-            "Run: `python benchmarks/adversarial.py --md`.",
+            "Run: `python -m benchmarks.adversarial --md`.",
             "",
         ]
         os.makedirs("docs", exist_ok=True)

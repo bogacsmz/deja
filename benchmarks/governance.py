@@ -13,19 +13,26 @@ standing decisions. We measure the errors that matter for a brake:
 Plus OWNER-ATTRIBUTION accuracy — we print "@X made the call" on the card, so we measure how often
 that name is right / wrong / correctly-empty. No tuning. Run once; whatever comes out is published.
 
-    python benchmarks/governance.py            # run + print
-    python benchmarks/governance.py --md        # also write docs/GOVERNANCE.md
+    python -m benchmarks.governance            # run + print
+    python -m benchmarks.governance --md        # also write docs/GOVERNANCE.md
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import pathlib
 import sys
 
 from dotenv import load_dotenv
 
 load_dotenv(".env", override=False)
+
+# Reproducibility: point the judge/expand caches at the committed files BEFORE any deja import (they
+# are read at import time). Deterministic, and runs without a Claude token. See benchmarks/run.py.
+_CACHES = pathlib.Path(__file__).parent
+os.environ.setdefault("DEJA_JUDGE_CACHE", str(_CACHES / ".judge_cache.json"))
+os.environ.setdefault("DEJA_EXPAND_CACHE", str(_CACHES / ".expand_cache.json"))
 
 from benchmarks.local import local_recall, local_thread  # noqa: E402
 from deja.govern import ALLOW, CONFLICTS, INCONCLUSIVE, check_decision  # noqa: E402

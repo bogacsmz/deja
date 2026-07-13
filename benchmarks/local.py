@@ -98,9 +98,11 @@ def local_recall(
     in_corpus = [w for w in qwords if _DF.get(w, 0) > 0]
     if not in_corpus:
         return []  # nothing the query is about exists here — RTS would return nothing
-    salient = max(
-        in_corpus, key=_idf
-    )  # the query's most distinctive term that DOES occur
+    # The query's most distinctive term that DOES occur. `in_corpus` comes from a set, so its order
+    # varies with PYTHONHASHSEED — an IDF tie would pick a different salient term on every run and the
+    # whole benchmark would wobble. Break ties alphabetically so the number we publish is the number
+    # anyone else gets.
+    salient = max(in_corpus, key=lambda w: (_idf(w), w))
 
     denom = sum(_idf(w) for w in qwords) or 1.0
     scored: list[tuple[float, dict]] = []
